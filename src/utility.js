@@ -50,8 +50,6 @@ const trim = (string) => {
 };
 
 const writeEnvFile = (filePath, newContent) => {
-  console.log(filePath);
-
   let dataString = '';
   // eslint-disable-next-line no-restricted-syntax
   for (const content of newContent) {
@@ -104,7 +102,7 @@ const copyFile = async (inputFile, outputFile) => {
 
 const getFileNamesInDirectory = async (startPath, filter) => {
   if (!fs.existsSync(startPath)) {
-    console.log('no dir ', startPath);
+    console.warn('No dir ', startPath);
     return [];
   }
 

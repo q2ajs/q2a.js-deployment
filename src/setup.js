@@ -32,7 +32,6 @@ const readSampleEnvAndCreateEnv = async (sampleEnvPath, outputEnvPath, outputEnv
     newContent.push(result);
   }
   if (extraEnv != null) newContent.push(extraEnv);
-  console.log(newContent);
   writeEnvFile(outputEnvPath, newContent);
   writeEnvFile(outputEnvPath2, newContent);
 };
@@ -79,7 +78,6 @@ const getNginxDomainConfig = (sampleConfig, SITE_NAME, FRONT_END_PORT, API_PORT,
     `${DOMAIN}`,
   ];
   const result = replaceOnce(configToRepeat, find, replace, 'gi');
-  console.log(result);
   return result;
 };
 
@@ -101,11 +99,9 @@ const getNginxDomainConfig = (sampleConfig, SITE_NAME, FRONT_END_PORT, API_PORT,
   const siteName = await prompt('Enter site name (dev for development )/siteName:');
   console.log('outputDirectory', outputDirectory);
   if (!fs.existsSync(`${configsDirectory}/${siteName}.env/`)) {
-    console.log(siteName);
     await readEnvFiles(siteName, false);
   } else {
     const edit = await prompt('Do you want edit information?(Y/N)');
-    console.log(isAnswerYes(edit));
     if (isAnswerYes(edit)) {
       await readEnvFiles(siteName, true);
     } else {
@@ -120,7 +116,6 @@ const getNginxDomainConfig = (sampleConfig, SITE_NAME, FRONT_END_PORT, API_PORT,
 
   const dockerFileEnvArray = await getFileNamesInDirectory(`${configsDirectory}`, '.DOCKER.env');
 
-  console.log('???:', dockerFileEnvArray);
   for (let i = 0; i < dockerFileEnvArray.length; i += 1) {
     const dockerFile = await readEnvFile(dockerFileEnvArray[i]);
     nginxConfig += getNginxDomainConfig(

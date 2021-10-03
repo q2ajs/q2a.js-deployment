@@ -2639,7 +2639,7 @@ find-up@^4.0.0, find-up@^4.1.0:
     locate-path "^5.0.0"
     path-exists "^4.0.0"
 
-findit@^2.0.0:
+findit@2.0.0:
   version "2.0.0"
   resolved "https://registry.yarnpkg.com/findit/-/findit-2.0.0.tgz#6509f0126af4c178551cfa99394e032e13a4d56e"
   integrity sha1-ZQnwEmr0wXhVHPqZOU4DLhOk1W4=
@@ -2681,7 +2681,7 @@ fs.realpath@^1.0.0:
   resolved "https://registry.yarnpkg.com/fs.realpath/-/fs.realpath-1.0.0.tgz#1504ad2523158caa40db4a2787cb01411994ea4f"
   integrity sha1-FQStJSMVjKpA20onh8sBQRmU6k8=
 
-fs@^0.0.1-security:
+fs@0.0.1-security:
   version "0.0.1-security"
   resolved "https://registry.yarnpkg.com/fs/-/fs-0.0.1-security.tgz#8a7bd37186b6dddf3813f23858b57ecaaf5e41d4"
   integrity sha1-invTcYa23d84E/I4WLV+yq9eQdQ=
@@ -2922,7 +2922,7 @@ inherits@2, inherits@^2.0.3, inherits@^2.0.4:
   resolved "https://registry.yarnpkg.com/inherits/-/inherits-2.0.4.tgz#0fa2c64f932917c3433a0ded55363aae37416b7c"
   integrity sha512-k/vGaX4/Yla3WzyMCvTQOXYeIHvqOKtnqBduzTHpzpQZzAskKMhZ2K+EnBiSM9zGSoIFeMpXKxa4dYeZIQqewQ==
 
-inquirer@^8.1.5:
+inquirer@8.1.5:
   version "8.1.5"
   resolved "https://registry.yarnpkg.com/inquirer/-/inquirer-8.1.5.tgz#2dc5159203c826d654915b5fe6990fd17f54a150"
   integrity sha512-G6/9xUqmt/r+UvufSyrPpt84NYwhKZ9jLsgMbQzlx804XErNupor8WQdBnBRrXmBfTPpuwf1sV+ss2ovjgdXIg==
@@ -4251,7 +4251,7 @@ promise@^7.0.1:
   dependencies:
     asap "~2.0.3"
 
-prompt@^1.2.0:
+prompt@1.2.0:
   version "1.2.0"
   resolved "https://registry.yarnpkg.com/prompt/-/prompt-1.2.0.tgz#5d8f1d9011766bac07abde510dbf4338d87b4f02"
   integrity sha512-iGerYRpRUg5ZyC+FJ/25G5PUKuWAGRjW1uOlhX7Pi3O5YygdK6R+KEaBjRbHSkU5vfS5PZCltSPZdDtUYwRCZA==
@@ -4434,7 +4434,7 @@ readable-stream@^3.4.0:
     string_decoder "^1.1.1"
     util-deprecate "^1.0.1"
 
-readline@^1.3.0:
+readline@1.3.0:
   version "1.3.0"
   resolved "https://registry.yarnpkg.com/readline/-/readline-1.3.0.tgz#c580d77ef2cfc8752b132498060dc9793a7ac01c"
   integrity sha1-xYDXfvLPyHUrEySYBg3JeTp6wBw=
@@ -4497,7 +4497,7 @@ repeat-string@^1.0.0:
   resolved "https://registry.yarnpkg.com/repeat-string/-/repeat-string-1.6.1.tgz#8dcae470e1c88abc2d600fff4a776286da75e637"
   integrity sha1-jcrkcOHIirwtYA//Sndihtp15jc=
 
-replace-once@^1.0.0:
+replace-once@1.0.0:
   version "1.0.0"
   resolved "https://registry.yarnpkg.com/replace-once/-/replace-once-1.0.0.tgz#1406f4bc736ad9722446bd71826d52f9e6f0572e"
   integrity sha512-AwTJCCEdk2mGf1Oakgyz+WTBCtI+VxV+D7jzhTyVeEnsTwfCFN9Ax3VorsZDr1p2KgX2nWesfYmK6U2IU/mRyw==

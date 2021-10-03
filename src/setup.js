@@ -1,110 +1,138 @@
-import readline from 'readline';
 import fs from 'fs';
-import path from 'path';
-import { exec } from 'child_process';
+import replaceOnce from 'replace-once';
+import {
+  promptWithSample,
+  prompt,
+  trim,
+  readEnvFile,
+  writeEnvFile,
+  isAnswerYes,
+  outputDirectory,
+  configsDirectory,
+  nginxDirectory,
+  cloneProject,
+  createFolderIfNotExist,
+  copyFile,
+  getFileNamesInDirectory,
+} from './utility.js';
 
-const outputDirectory = `${path.resolve()}/cloned_projects`;
-const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
-
-const prompt = (query, defaultValue = null) =>
-  new Promise((resolve) => {
-    let queryAndDefault = query;
-    if (defaultValue) queryAndDefault += ` ( e.g ${defaultValue} ) : `;
-    else queryAndDefault += ' : ';
-    return rl.question(queryAndDefault, resolve);
-  });
-
-const execShellCommand = (cmd) => {
-  return new Promise((resolve, reject) => {
-    exec(cmd, (error, stdout, stderr) => {
-      if (error) {
-        console.warn(error);
-      }
-      resolve(stdout || stderr);
-    });
-  });
-};
-const replaceAll = (string, search, replace) => {
-  return string.split(search).join(replace);
-};
-
-const trim = (string) => {
-  return string.replace(/^\s+|\s+$/g, '');
-};
-
-const readEnvFile = (filePath) => {
-  const lines = trim(replaceAll(fs.readFileSync(filePath).toString('utf8'), '\r', '')).split('\n');
-  const keyValues = [];
-  lines.forEach((line) => {
-    const parts = line.split('=');
-    const keyValue = {};
-    keyValue[parts[0]] = parts[1];
-    keyValues.push(keyValue);
-  });
-  return keyValues;
-};
-
-const writeEnvFile = (filePath, newContent) => {
-  console.log(filePath);
-
-  let dataString = '';
-  // eslint-disable-next-line no-restricted-syntax
-  for (const content of newContent) {
-    const keyValue = Object.entries(content)[0];
-    dataString += `${keyValue[0]}=${keyValue[1]}`;
-    dataString += '\n';
-  }
-  fs.writeFileSync(filePath, dataString);
-};
-
-const cloneProject = async (projectName, outPutFolderName) => {
-  const clonedProjectPath = `${outputDirectory}/${outPutFolderName}`;
-  let gitCommand = '';
-  let cdPath = '';
-  if (fs.existsSync(clonedProjectPath)) {
-    gitCommand = 'git pull';
-    cdPath = `${clonedProjectPath}`;
-  } else {
-    gitCommand = `git clone https://github.com/q2ajs/${projectName}.git ${outPutFolderName}`;
-    cdPath = `${outputDirectory}`;
-  }
-  await execShellCommand(`cd ${cdPath} && ${gitCommand}`);
-  await execShellCommand(`cd ${clonedProjectPath} && yarn`);
-};
-
-const readSampleEnvAndCreateEnv = async (sampleEnvPath, outputEnvPath) => {
+const readSampleEnvAndCreateEnv = async (sampleEnvPath, outputEnvPath, outputEnvPath2, extraEnv = null) => {
   const envContent = readEnvFile(sampleEnvPath);
   const newContent = [];
   // eslint-disable-next-line no-restricted-syntax
-  for (const content of envContent) {
-    const keyValue = Object.entries(content)[0];
+  for (const [key, value] of Object.entries(envContent)) {
     // eslint-disable-next-line no-await-in-loop
-    const item = await prompt(keyValue[0], keyValue[1]);
+    const item = trim(await promptWithSample(key, value));
     const result = {};
-    result[keyValue[0]] = item;
+    if (item.length === 0) {
+      result[key] = value;
+    } else {
+      result[key] = item;
+    }
     newContent.push(result);
   }
+  if (extraEnv != null) newContent.push(extraEnv);
   console.log(newContent);
-
   writeEnvFile(outputEnvPath, newContent);
+  writeEnvFile(outputEnvPath2, newContent);
+};
+
+const readEnvFiles = async (siteName, useSavedSample) => {
+  console.log('Please enter requested info for api >>>');
+  await readSampleEnvAndCreateEnv(
+    useSavedSample ? `${outputDirectory}/${siteName}.api.env` : `${outputDirectory}/api/.sample.env`,
+    `${configsDirectory}/${siteName}.api.env`,
+    `${outputDirectory}/api/.env`
+  );
+  console.log('Please enter requested info for frontend >>>');
+  await readSampleEnvAndCreateEnv(
+    useSavedSample
+      ? `${outputDirectory}/${siteName}.frontend.env`
+      : `${outputDirectory}/frontend/.sample.env`,
+    `${configsDirectory}/${siteName}.frontend.env`,
+    `${outputDirectory}/frontend/.env`
+  );
+  await readSampleEnvAndCreateEnv(
+    useSavedSample ? `${configsDirectory}/${siteName}.DOCKER.env` : `${outputDirectory}/../.sample.env`,
+    `${configsDirectory}/${siteName}.DOCKER.env`,
+    `${outputDirectory}/DOCKER.env`,
+    { SITE_NAME: siteName }
+  );
+};
+
+const getNginxEndConfig = (sampleConfig) => {
+  return sampleConfig.substring(sampleConfig.lastIndexOf('%end%') + '%end%'.length, sampleConfig.length);
+};
+
+const getNginxDomainConfig = (sampleConfig, SITE_NAME, FRONT_END_PORT, API_PORT, DOMAIN) => {
+  const configToRepeat = sampleConfig.substring(
+    sampleConfig.indexOf('%begin%') + '%begin%'.length,
+    sampleConfig.lastIndexOf('%end%')
+  );
+  const find = ['%frontend%', '%frontend_port%', '%api%', '%api_port%', '%sitename%', '%domain%'];
+  const replace = [
+    `${SITE_NAME}_frontend`,
+    `${FRONT_END_PORT}`,
+    `${SITE_NAME}_api`,
+    `${API_PORT}`,
+    `${SITE_NAME}`,
+    `${DOMAIN}`,
+  ];
+  const result = replaceOnce(configToRepeat, find, replace, 'gi');
+  console.log(result);
+  return result;
 };
 
 (async () => {
-  if (!fs.existsSync(outputDirectory)) {
-    fs.mkdirSync(outputDirectory);
-  }
+  createFolderIfNotExist(outputDirectory);
+  createFolderIfNotExist(configsDirectory);
+
+  // nginx folder
+  createFolderIfNotExist(nginxDirectory);
+  await copyFile(`${outputDirectory}/../nginx/default.conf`, `${nginxDirectory}/default.conf`);
+  await copyFile(`${outputDirectory}/../nginx/Dockerfile`, `${nginxDirectory}/Dockerfile`);
+  await copyFile(`${outputDirectory}/../docker-compose.yaml`, `${outputDirectory}/docker-compose.yaml`);
+
   console.log('Please wait for downloading q2a projects...');
   await cloneProject('q2a.js-frontend', 'frontend');
   await cloneProject('q2a.js-api', 'api');
 
   console.log('Download succeeded');
-  console.log('Please enter requested info for api >>>');
-  await readSampleEnvAndCreateEnv(`${outputDirectory}/api/.sample.env`, `${outputDirectory}/api/.env`);
+  const siteName = await prompt('Enter site name (dev for development )/siteName:');
+  console.log('outputDirectory', outputDirectory);
+  if (!fs.existsSync(`${configsDirectory}/${siteName}.env/`)) {
+    console.log(siteName);
+    await readEnvFiles(siteName, false);
+  } else {
+    const edit = await prompt('Do you want edit information?(Y/N)');
+    console.log(isAnswerYes(edit));
+    if (isAnswerYes(edit)) {
+      await readEnvFiles(siteName, true);
+    } else {
+      await copyFile(`${configsDirectory}/${siteName}.frontend.env`, `${outputDirectory}/frontend/.env`);
+      await copyFile(`${configsDirectory}/${siteName}.api.env`, `${outputDirectory}/api/.env`);
+    }
+  }
+  let nginxConfig = ``;
+  const nginxSampleConfig = await fs
+    .readFileSync(`${outputDirectory}/../nginx/default.conf`)
+    .toString('utf8');
 
-  console.log('Please enter requested info for frontend >>>');
-  await readSampleEnvAndCreateEnv(
-    `${outputDirectory}/frontend/.sample.env`,
-    `${outputDirectory}/frontend/.env`
-  );
+  const dockerFileEnvArray = await getFileNamesInDirectory(`${configsDirectory}`, '.DOCKER.env');
+
+  console.log('???:', dockerFileEnvArray);
+  for (let i = 0; i < dockerFileEnvArray.length; i += 1) {
+    const dockerFile = await readEnvFile(dockerFileEnvArray[i]);
+    nginxConfig += getNginxDomainConfig(
+      nginxSampleConfig,
+      dockerFile.SITE_NAME,
+      dockerFile.FRONT_END_PORT,
+      dockerFile.API_PORT,
+      dockerFile.DOMAIN
+    );
+  }
+  nginxConfig += getNginxEndConfig(nginxSampleConfig);
+  fs.writeFileSync(`${nginxDirectory}/default.conf`, nginxConfig);
+
   process.exit(0);
 })();

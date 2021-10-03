@@ -29,9 +29,9 @@ services:
       - 8081:80
   api:
     build:
-      context: ./api/
+      context: ./cloned_projects/api/
       dockerfile: Dockerfile
-    image: q2a-api
+    image: "${SITE_NAME}-api"
     links:
       - mysql
     depends_on:
@@ -41,23 +41,24 @@ services:
     stdin_open: true
     tty: true
     ports:
-      - 4000:4000
+      - "${API_PORT}:4000"
   frontend:
     build:
-      context: ./frontend/
+      context: ./cloned_projects/frontend/
       dockerfile: Dockerfile
-    image: q2a-frontend
+    image: "${SITE_NAME}-frontend"
     links:
       - api
     depends_on:
       - api
+      - mysql
     stdin_open: true
     tty: true
     ports:
-      - 3000:3000
+      - "${FRONT_END_PORT}:4000"
   nginx:
     build:
-      context: api/nginx/
+      context: ./nginx/
       dockerfile: Dockerfile
     depends_on:
       - api

@@ -35,6 +35,7 @@
     "prettier": "^2.3.2"
   },
   "scripts": {
+    "install_prod_modules": "yarn install --production --frozen-lockfile",
     "setup": "node src/setup.js",
     "deploy_docker": "cd cloned_projects && docker-compose --env-file ./docker.env up -d",
     "api_run_dev": "cd cloned_projects/api && yarn dev",

@@ -86,7 +86,7 @@ const cloneProject = async (projectName, outPutFolderName) => {
     cdPath = `${outputDirectory}`;
   }
   await execShellCommand(`cd ${cdPath} && ${gitCommand}`);
-  await execShellCommand(`cd ${clonedProjectPath} && yarn`);
+  await execShellCommand(`cd ${clonedProjectPath} && yarn install --production --frozen-lockfile`);
 };
 
 const createFolderIfNotExist = (directory) => {

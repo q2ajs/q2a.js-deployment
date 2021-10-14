@@ -82,6 +82,7 @@ const cloneProject = async (projectName, outPutFolderName) => {
     gitCommand = 'git pull';
     cdPath = `${clonedProjectPath}`;
   } else {
+   // gitCommand = `git clone https://github.com/q2ajs/${projectName}.git -b master --single-branch ${outPutFolderName}`;
     gitCommand = `git clone https://github.com/q2ajs/${projectName}.git ${outPutFolderName}`;
     cdPath = `${outputDirectory}`;
   }

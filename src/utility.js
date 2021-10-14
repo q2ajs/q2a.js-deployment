@@ -2,17 +2,16 @@ import readline from 'readline';
 import fs from 'fs';
 import path from 'path';
 import { exec } from 'child_process';
-import replaceOnce from 'replace-once';
 
 const outputDirectory = `${path.resolve()}/cloned_projects`;
 const configsDirectory = `${outputDirectory}/config`;
 const nginxDirectory = `${outputDirectory}/nginx`;
 
-const promptWithSample = async (query, defaultValue = null) => {
+const promptWithSample = async (query, defaultValue = '') => {
   const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
   return new Promise((resolve) => {
     let queryAndDefault = query;
-    if (defaultValue) queryAndDefault += ` ( e.g ${defaultValue} ) : `;
+    if (defaultValue) queryAndDefault += ` ( default :  ${defaultValue} ) : `;
     else queryAndDefault += ' : ';
     rl.question(queryAndDefault, (data) => {
       resolve(data);
@@ -60,15 +59,10 @@ const writeEnvFile = (filePath, newContent) => {
   fs.writeFileSync(filePath, dataString);
 };
 
-const readEnvFile = (filePath) => {
-  const lines = trim(replaceAll(fs.readFileSync(filePath).toString('utf8'), '\r', '')).split('\n');
-  const keyValues = {};
-  lines.forEach((line) => {
-    const parts = line.split('=');
-    keyValues[parts[0]] = parts[1];
-  });
-  return keyValues;
+const readDeploySettingFile = (filePath) => {
+  return fs.readFileSync(filePath).toString('utf8');
 };
+
 const isAnswerYes = (word) => {
   const result = word.toLowerCase();
   return result === 'y' || result === 'yes';
@@ -82,7 +76,7 @@ const cloneProject = async (projectName, outPutFolderName) => {
     gitCommand = 'git pull';
     cdPath = `${clonedProjectPath}`;
   } else {
-   // gitCommand = `git clone https://github.com/q2ajs/${projectName}.git -b master --single-branch ${outPutFolderName}`;
+    // gitCommand = `git clone https://github.com/q2ajs/${projectName}.git -b fix/deploymentProblems --single-branch ${outPutFolderName}`;
     gitCommand = `git clone https://github.com/q2ajs/${projectName}.git ${outPutFolderName}`;
     cdPath = `${outputDirectory}`;
   }
@@ -128,7 +122,7 @@ export {
   execShellCommand,
   replaceAll,
   trim,
-  readEnvFile,
+  readDeploySettingFile,
   writeEnvFile,
   isAnswerYes,
   outputDirectory,

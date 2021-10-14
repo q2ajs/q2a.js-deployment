@@ -1,0 +1,8 @@
+{
+  "DOMAIN": {
+    "Question": "Enter your domain ? ",
+    "defaultValue": "",
+    "validationRegex": "",
+    "type": "domain"
+  }
+}

@@ -7,27 +7,29 @@ const outputDirectory = `${path.resolve()}/cloned_projects`;
 const configsDirectory = `${outputDirectory}/config`;
 const nginxDirectory = `${outputDirectory}/nginx`;
 
-const promptWithSample = async (query, defaultValue = '') => {
-  const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
-  return new Promise((resolve) => {
-    let queryAndDefault = query;
-    if (defaultValue) queryAndDefault += ` ( default :  ${defaultValue} ) : `;
-    else queryAndDefault += ' : ';
-    rl.question(queryAndDefault, (data) => {
-      resolve(data);
-      rl.close();
-    });
-  });
+const trim = (string) => {
+  return string.replace(/^\s+|\s+$/g, '');
 };
 
-const prompt = async (query) => {
-  const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
-  return new Promise((resolve) => {
-    rl.question(query, (data) => {
-      resolve(data);
-      rl.close();
+const prompt = async (query, defaultValue = '', regex = null) => {
+  while (true) {
+    const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+    // eslint-disable-next-line no-await-in-loop
+    const response = await new Promise((resolve) => {
+      let queryAndDefault = query;
+      if (defaultValue) queryAndDefault += ` ( default :  ${defaultValue} ) : `;
+      else queryAndDefault += ' : ';
+      rl.question(queryAndDefault, (data) => {
+        resolve(data === null || data.length === 0 ? defaultValue : data);
+        rl.close();
+      });
     });
-  });
+
+    if (regex === null || regex.test(response)) {
+      return response;
+    }
+    console.warn(`Wrong input for ${regex}`);
+  }
 };
 
 const execShellCommand = (cmd) => {
@@ -40,12 +42,9 @@ const execShellCommand = (cmd) => {
     });
   });
 };
-const replaceAll = (string, search, replace) => {
-  return string.split(search).join(replace);
-};
 
-const trim = (string) => {
-  return string.replace(/^\s+|\s+$/g, '');
+const writeJsonFile = (filePath, newContent) => {
+  fs.writeFileSync(filePath, JSON.stringify(newContent));
 };
 
 const writeEnvFile = (filePath, newContent) => {
@@ -60,12 +59,12 @@ const writeEnvFile = (filePath, newContent) => {
 };
 
 const readDeploySettingFile = (filePath) => {
-  return fs.readFileSync(filePath).toString('utf8');
+  return JSON.parse(fs.readFileSync(filePath).toString('utf8'));
 };
 
-const isAnswerYes = (word) => {
-  const result = word.toLowerCase();
-  return result === 'y' || result === 'yes';
+const isAnswerYes = (input) => {
+  const lowerCaseInput = input.toLowerCase();
+  return lowerCaseInput === 'y' || lowerCaseInput === 'yes';
 };
 
 const cloneProject = async (projectName, outPutFolderName) => {
@@ -76,8 +75,8 @@ const cloneProject = async (projectName, outPutFolderName) => {
     gitCommand = 'git pull';
     cdPath = `${clonedProjectPath}`;
   } else {
-    // gitCommand = `git clone https://github.com/q2ajs/${projectName}.git -b fix/deploymentProblems --single-branch ${outPutFolderName}`;
-    gitCommand = `git clone https://github.com/q2ajs/${projectName}.git ${outPutFolderName}`;
+    gitCommand = `git clone https://github.com/q2ajs/${projectName}.git -b fix/deployment --single-branch ${outPutFolderName}`;
+    //  gitCommand = `git clone https://github.com/q2ajs/${projectName}.git ${outPutFolderName}`;
     cdPath = `${outputDirectory}`;
   }
   await execShellCommand(`cd ${cdPath} && ${gitCommand}`);
@@ -116,11 +115,54 @@ const getFileNamesInDirectory = async (startPath, filter) => {
   return results;
 };
 
+// eslint-disable-next-line complexity
+const createEnvAndSavedConfigsFromInputAndDeploySettings = async (
+  deploySettingsPath,
+  outputSettingPath,
+  outputEnvPath,
+  extraEnv = null
+) => {
+  const settings = readDeploySettingFile(deploySettingsPath);
+  const outPutSettings = readDeploySettingFile(deploySettingsPath);
+  const newContent = [];
+  // eslint-disable-next-line no-restricted-syntax
+  for (const [key, value] of Object.entries(settings)) {
+    // eslint-disable-next-line no-await-in-loop
+    const validationRegex = value.validationRegex.length > 0 ? new RegExp(value.validationRegex) : null;
+    if (value.getFromInput === 'true') {
+      // eslint-disable-next-line no-await-in-loop
+      const userInput = trim(await prompt(value.question, value.defaultValue, validationRegex));
+      const result = {};
+      if (userInput.length === 0) {
+        result[key] = value.defaultValue;
+      } else {
+        result[key] = userInput;
+      }
+      outPutSettings[key].defaultValue = result[key];
+      newContent.push(result);
+    }
+  }
+  if (extraEnv != null) newContent.push(extraEnv);
+  writeJsonFile(outputSettingPath, outPutSettings);
+  writeEnvFile(outputEnvPath, newContent);
+};
+
+const createEnvFromSettingsJson = (deploySettingsPath, outputEnvPath) => {
+  const settings = readDeploySettingFile(deploySettingsPath);
+  const newContent = [];
+  // eslint-disable-next-line no-restricted-syntax
+  for (const [key, value] of Object.entries(settings)) {
+    // eslint-disable-next-line no-await-in-loop
+    const result = {};
+    result[key] = value.defaultValue;
+    newContent.push(result);
+  }
+  writeEnvFile(outputEnvPath, newContent);
+};
+
 export {
-  promptWithSample,
   prompt,
   execShellCommand,
-  replaceAll,
   trim,
   readDeploySettingFile,
   writeEnvFile,
@@ -132,4 +174,7 @@ export {
   createFolderIfNotExist,
   copyFile,
   getFileNamesInDirectory,
+  writeJsonFile,
+  createEnvFromSettingsJson,
+  createEnvAndSavedConfigsFromInputAndDeploySettings,
 };

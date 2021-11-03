@@ -33,13 +33,18 @@ const createEnvFilesFromInput = async (siteName, useSavedSample) => {
     `${outputDirectory}/frontend/.env`
   );
   console.info('Please enter requested info for your domain >>>');
+  const apiSettings = readDeploySettingFile(`${configsDirectory}/${siteName}.api.deploy_settings.json`);
   await createEnvAndSavedConfigsFromInputAndDeploySettings(
     useSavedSample
       ? `${configsDirectory}/${siteName}.docker.deploy_settings.json`
       : `${outputDirectory}/../deploy_settings.json`,
     `${configsDirectory}/${siteName}.docker.deploy_settings.json`,
     `${outputDirectory}/docker.env`,
-    { SITE_NAME: siteName }
+    {
+      SITE_NAME: siteName,
+      MYSQL_ROOT_PASSWORD: apiSettings.MYSQL_PASSWORD.defaultValue,
+      MYSQL_DATABASE: apiSettings.MYSQL_DATABASE.defaultValue,
+    }
   );
 };
 
@@ -113,7 +118,6 @@ const getNginxDomainConfig = (sampleConfig, SITE_NAME, FRONT_END_PORT, API_PORT,
   for (let i = 0; i < dockerFileEnvArray.length; i += 1) {
     // eslint-disable-next-line no-await-in-loop
     const dockerFile = readDeploySettingFile(dockerFileEnvArray[i]);
-    console.log('dockerFile::::', dockerFile);
     nginxConfig += getNginxDomainConfig(
       nginxSampleConfig,
       siteName,

@@ -31,7 +31,8 @@ const createEnvFilesFromInput = async (siteName, useSavedSample) => {
       ? `${outputDirectory}/${siteName}.frontend.deploy_settings.json`
       : `${outputDirectory}/frontend/deploy_settings.json`,
     `${configsDirectory}/${siteName}.frontend.deploy_settings.json`,
-    `${outputDirectory}/frontend/.env`
+    `${outputDirectory}/frontend/.env`,
+    [{ NEXT_PUBLIC_GRAPHQL_URL: 'http://api:4000/graphql' }]
   );
   console.info('Please enter requested info for your domain >>>');
   const apiSettings = readDeploySettingFile(`${configsDirectory}/${siteName}.api.deploy_settings.json`);
@@ -89,7 +90,7 @@ const getNginxDomainConfig = (sampleConfig, SITE_NAME, FRONT_END_PORT, API_PORT,
   console.log('Download succeeded');
   const siteNameRegex = RegExp('.{3,}');
   const siteName = await prompt('Enter site name (dev for development )/siteName:', '', siteNameRegex);
-  console.log('outputDirectory', outputDirectory);
+
   if (!fs.existsSync(`${configsDirectory}/${siteName}.docker.deploy_settings.json`)) {
     await createEnvFilesFromInput(siteName, false);
   } else {
@@ -99,7 +100,8 @@ const getNginxDomainConfig = (sampleConfig, SITE_NAME, FRONT_END_PORT, API_PORT,
     } else {
       createEnvFromSettingsJson(
         `${configsDirectory}/${siteName}.frontend.deploy_settings.json`,
-        `${outputDirectory}/frontend/.env`
+        `${outputDirectory}/frontend/.env`,
+        [{ NEXT_PUBLIC_GRAPHQL_URL: 'http://api:4000/graphql' }]
       );
       createEnvFromSettingsJson(
         `${configsDirectory}/${siteName}.api.deploy_settings.json`,

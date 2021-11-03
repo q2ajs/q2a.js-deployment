@@ -28,7 +28,7 @@ services:
       - 8081:80
   api:
     build:
-      context: ./cloned_projects/api/
+      context: ./api/
       dockerfile: Dockerfile
     image: "${SITE_NAME}-api"
     links:
@@ -43,7 +43,7 @@ services:
       - "${API_PORT}:4000"
   frontend:
     build:
-      context: ./cloned_projects/frontend/
+      context: ./frontend/
       dockerfile: Dockerfile
     image: "${SITE_NAME}-frontend"
     links:

@@ -142,12 +142,14 @@ const createEnvAndSavedConfigsFromInputAndDeploySettings = async (
       newContent.push(result);
     }
   }
-  if (extraEnv != null) newContent.push(extraEnv);
+  if (extraEnv != null) {
+    for (let i = 0; i < extraEnv.length; i += 1) newContent.push(extraEnv[i]);
+  }
   writeJsonFile(outputSettingPath, outPutSettings);
   writeEnvFile(outputEnvPath, newContent);
 };
 
-const createEnvFromSettingsJson = (deploySettingsPath, outputEnvPath) => {
+const createEnvFromSettingsJson = (deploySettingsPath, outputEnvPath, extraEnv) => {
   const settings = readDeploySettingFile(deploySettingsPath);
   const newContent = [];
   // eslint-disable-next-line no-restricted-syntax
@@ -156,6 +158,9 @@ const createEnvFromSettingsJson = (deploySettingsPath, outputEnvPath) => {
     const result = {};
     result[key] = value.defaultValue;
     newContent.push(result);
+  }
+  if (extraEnv != null) {
+    for (let i = 0; i < extraEnv.length; i += 1) newContent.push(extraEnv[i]);
   }
   writeEnvFile(outputEnvPath, newContent);
 };

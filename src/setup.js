@@ -40,11 +40,11 @@ const createEnvFilesFromInput = async (siteName, useSavedSample) => {
       : `${outputDirectory}/../deploy_settings.json`,
     `${configsDirectory}/${siteName}.docker.deploy_settings.json`,
     `${outputDirectory}/docker.env`,
-    {
-      SITE_NAME: siteName,
-      MYSQL_ROOT_PASSWORD: apiSettings.MYSQL_PASSWORD.defaultValue,
-      MYSQL_DATABASE: apiSettings.MYSQL_DATABASE.defaultValue,
-    }
+    [
+      { SITE_NAME: siteName },
+      { MYSQL_ROOT_PASSWORD: apiSettings.MYSQL_PASSWORD.defaultValue },
+      { MYSQL_DATABASE: apiSettings.MYSQL_DATABASE.defaultValue },
+    ]
   );
 };
 
@@ -103,6 +103,15 @@ const getNginxDomainConfig = (sampleConfig, SITE_NAME, FRONT_END_PORT, API_PORT,
       createEnvFromSettingsJson(
         `${configsDirectory}/${siteName}.api.deploy_settings.json`,
         `${outputDirectory}/api/.env`
+      );
+      const apiSettings = readDeploySettingFile(`${configsDirectory}/${siteName}.api.deploy_settings.json`);
+      createEnvFromSettingsJson(
+        `${configsDirectory}/${siteName}.docker.deploy_settings.json`,
+        `${outputDirectory}/docker.env`,
+        [
+          { MYSQL_ROOT_PASSWORD: apiSettings.MYSQL_PASSWORD.defaultValue },
+          { MYSQL_DATABASE: apiSettings.MYSQL_DATABASE.defaultValue },
+        ]
       );
     }
   }

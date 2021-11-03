@@ -10,8 +10,8 @@ services:
     ports:
       - 3306:3306
     volumes:
-      - db-config:/etc/mysql
-      - db-data:/var/lib/mysql
+      - ./db/config:/etc/mysql
+      - ./db/data:/var/lib/mysql
       - ./db/backup/files/:/data_backup/data
     command: ['mysqld', '--character-set-server=utf8mb4', '--collation-server=utf8mb4_general_ci']
   phpmyadmin:

@@ -22,7 +22,8 @@ const createEnvFilesFromInput = async (siteName, useSavedSample) => {
       ? `${outputDirectory}/${siteName}.api.deploy_settings.json`
       : `${outputDirectory}/api/deploy_settings.json`,
     `${configsDirectory}/${siteName}.api.deploy_settings.json`,
-    `${outputDirectory}/api/.env`
+    `${outputDirectory}/api/.env`,
+    [{ MYSQL_HOST: 'mysql' }]
   );
   console.info('Please enter requested info for frontend >>>');
   await createEnvAndSavedConfigsFromInputAndDeploySettings(
@@ -102,7 +103,8 @@ const getNginxDomainConfig = (sampleConfig, SITE_NAME, FRONT_END_PORT, API_PORT,
       );
       createEnvFromSettingsJson(
         `${configsDirectory}/${siteName}.api.deploy_settings.json`,
-        `${outputDirectory}/api/.env`
+        `${outputDirectory}/api/.env`,
+        [{ MYSQL_HOST: 'mysql' }]
       );
       const apiSettings = readDeploySettingFile(`${configsDirectory}/${siteName}.api.deploy_settings.json`);
       createEnvFromSettingsJson(

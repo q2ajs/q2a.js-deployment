@@ -160,7 +160,9 @@ const createEnvFromSettingsJson = (deploySettingsPath, outputEnvPath, extraEnv) 
     newContent.push(result);
   }
   if (extraEnv != null) {
-    for (let i = 0; i < extraEnv.length; i += 1) newContent.push(extraEnv[i]);
+    for (let i = 0; i < extraEnv.length; i += 1) {
+      newContent.push(extraEnv[i]);
+    }
   }
   writeEnvFile(outputEnvPath, newContent);
 };

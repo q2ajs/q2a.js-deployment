@@ -109,6 +109,7 @@ const getNginxDomainConfig = (sampleConfig, SITE_NAME, FRONT_END_PORT, API_PORT,
         `${configsDirectory}/${siteName}.docker.deploy_settings.json`,
         `${outputDirectory}/docker.env`,
         [
+          { SITE_NAME: siteName },
           { MYSQL_ROOT_PASSWORD: apiSettings.MYSQL_PASSWORD.defaultValue },
           { MYSQL_DATABASE: apiSettings.MYSQL_DATABASE.defaultValue },
         ]

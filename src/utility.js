@@ -109,7 +109,7 @@ const getFileNamesInDirectory = async (startPath, filter) => {
       const recursiveResults = getFileNamesInDirectory(filename, filter); // recurse
       for (const result of recursiveResults) results.push(result);
     } else if (filename.indexOf(filter) >= 0) {
-      results.push(filename);
+      results.push(filename.substring(filename.lastIndexOf('\\') + 1, filename.length));
     }
   }
   return results;
@@ -143,10 +143,12 @@ const createEnvAndSavedConfigsFromInputAndDeploySettings = async (
     }
   }
   if (extraEnv != null) {
-    for (let i = 0; i < extraEnv.length; i += 1) newContent.push(extraEnv[i]);
+    for (let i = 0; i < extraEnv.length; i += 1) {
+      newContent.push(extraEnv[i]);
+    }
   }
   writeJsonFile(outputSettingPath, outPutSettings);
-  writeEnvFile(outputEnvPath, newContent);
+  // writeEnvFile(outputEnvPath, newContent);
 };
 
 const createEnvFromSettingsJson = (deploySettingsPath, outputEnvPath, extraEnv) => {

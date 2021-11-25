@@ -182,7 +182,7 @@ const createDockerComposerFromConfigs = (sampleConfig, dockerSettingFileNames) =
   for (let i = 0; i < dockerSettingFiles.length; i += 1) {
     // eslint-disable-next-line no-await-in-loop
     const currentSiteName = dockerSettingFiles[i].substring(
-      dockerSettingFiles[i].indexOf('.docker.deploy_settings.json') + 1,
+      dockerSettingFiles[i].lastIndexOf(siteName) + 1,
       dockerSettingFiles[i].lastIndexOf('.docker.deploy_settings.json')
     );
     const dockerFile = readDeploySettingFile(`${outputDirectory}/config/${dockerSettingFiles[i]}`);

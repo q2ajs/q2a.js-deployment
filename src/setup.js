@@ -87,7 +87,7 @@ const createDockerComposerFromConfigs = (sampleConfig, dockerSettingFileNames) =
   for (let i = 0; i < dockerSettingFileNames.length; i += 1) {
     // eslint-disable-next-line no-await-in-loop
     const siteName = dockerSettingFileNames[i].substring(
-      dockerSettingFileNames[i].indexOf(`\\`) + 1,
+      dockerSettingFileNames[i].indexOf(`/`) + 1,
       dockerSettingFileNames[i].lastIndexOf('.docker.deploy_settings.json')
     );
     const find = ['%SITE_NAME%'];

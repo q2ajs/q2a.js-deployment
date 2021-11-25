@@ -17,22 +17,27 @@ import {
 } from './utility.js';
 
 const createEnvFilesFromInput = async (siteName, useSavedSample, dataString) => {
+  console.log(`Please wait for downloading q2a projects for ${siteName}...`);
+  await cloneProject('q2a.js-api', `${siteName}/${siteName}_api`);
+  await cloneProject('q2a.js-frontend', `${siteName}/${siteName}_frontend`);
+
+  console.log('Download succeeded');
   console.info('Please enter requested info for api >>>');
   await createEnvAndSavedConfigsFromInputAndDeploySettings(
     useSavedSample
       ? `${configsDirectory}/${siteName}.api.deploy_settings.json`
-      : `${outputDirectory}/api/deploy_settings.json`,
+      : `${outputDirectory}/${siteName}/${siteName}_api/deploy_settings.json`,
     `${configsDirectory}/${siteName}.api.deploy_settings.json`,
-    `${outputDirectory}/api/.env`,
+    `${outputDirectory}/${siteName}/${siteName}_api/.env`,
     [{ MYSQL_HOST: 'mysql' }]
   );
   console.info('Please enter requested info for frontend >>>');
   await createEnvAndSavedConfigsFromInputAndDeploySettings(
     useSavedSample
       ? `${configsDirectory}/${siteName}.frontend.deploy_settings.json`
-      : `${outputDirectory}/frontend/deploy_settings.json`,
+      : `${outputDirectory}/${siteName}/${siteName}_frontend/deploy_settings.json`,
     `${configsDirectory}/${siteName}.frontend.deploy_settings.json`,
-    `${outputDirectory}/frontend/.env`,
+    `${outputDirectory}/${siteName}/${siteName}_frontend/frontend/.env`,
     [{ NEXT_PUBLIC_GRAPHQL_URL: 'http://api:4000/graphql' }]
   );
   console.info('Please enter requested info for your domain >>>');
@@ -131,12 +136,12 @@ const createDockerComposerFromConfigs = (sampleConfig, dockerSettingFileNames) =
     `${outputDirectory}/../docker/docker-compose.yaml`,
     `${outputDirectory}/docker-compose.conf`
   );
-  console.log('Please wait for downloading q2a projects...');
+  // console.log('Please wait for downloading q2a projects...');
+  // // await cloneProject('q2a.js-frontend', 'frontend');
+  // await cloneProject('q2a.js-api', 'api');
   // await cloneProject('q2a.js-frontend', 'frontend');
-  await cloneProject('q2a.js-api', 'api');
-  await cloneProject('q2a.js-frontend', 'frontend');
-
-  console.log('Download succeeded');
+  //
+  // console.log('Download succeeded');
   const siteNameRegex = RegExp('.{3,}');
   const siteName = await prompt('Enter site name (dev for development )/siteName:', '', siteNameRegex);
   if (!fs.existsSync(`${configsDirectory}/${siteName}.docker.deploy_settings.json`)) {
@@ -148,12 +153,12 @@ const createDockerComposerFromConfigs = (sampleConfig, dockerSettingFileNames) =
     } else {
       createEnvFromSettingsJson(
         `${configsDirectory}/${siteName}.frontend.deploy_settings.json`,
-        `${outputDirectory}/frontend/.env`,
+        `${outputDirectory}/${siteName}/${siteName}_frontend/.env`,
         [{ NEXT_PUBLIC_GRAPHQL_URL: 'http://api:4000/graphql' }]
       );
       createEnvFromSettingsJson(
         `${configsDirectory}/${siteName}.api.deploy_settings.json`,
-        `${outputDirectory}/api/.env`,
+        `${outputDirectory}/${siteName}/${siteName}_api/.env`,
         [{ MYSQL_HOST: 'mysql' }]
       );
       const apiSettings = readDeploySettingFile(`${configsDirectory}/${siteName}.api.deploy_settings.json`);
@@ -177,7 +182,6 @@ const createDockerComposerFromConfigs = (sampleConfig, dockerSettingFileNames) =
     `${configsDirectory}`,
     '.docker.deploy_settings.json'
   );
-
 
   let nginxConfig = ``;
   const dockerEnv = [];

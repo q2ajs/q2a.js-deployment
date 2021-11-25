@@ -136,7 +136,8 @@ const createDockerComposerFromConfigs = (sampleConfig, dockerSettingFileNames) =
     `${outputDirectory}/docker-compose.yaml`
   );
 
-  const siteNameRegex = RegExp('.{3,}');
+  const siteNameRegex = RegExp('[a-z]{3,}');
+  // const siteNameRegex =/[a-z]/.test(siteNameRegex);
   const siteName = await prompt('Enter site name (dev for development )/siteName:', '', siteNameRegex);
   if (!fs.existsSync(`${configsDirectory}/${siteName}.docker.deploy_settings.json`)) {
     await createEnvFilesFromInput(siteName, false);

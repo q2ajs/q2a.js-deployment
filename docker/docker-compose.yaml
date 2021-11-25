@@ -38,7 +38,7 @@ services:
 %API_Begin%
   %SITE_NAME%_api:
      build:
-       context: ./api/
+       context: ./%SITE_NAME%/api/
        dockerfile: Dockerfile
      image: "%SITE_NAME%-api"
      links:
@@ -55,7 +55,7 @@ services:
 %Frontend_Begin%
   %SITE_NAME%_frontend:
      build:
-       context: ./frontend/
+       context: ./%SITE_NAME%/frontend/
        dockerfile: Dockerfile
      image: "%SITE_NAME%-frontend"
      links:

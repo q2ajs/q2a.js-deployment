@@ -17,27 +17,26 @@ import {
 } from './utility.js';
 
 const createEnvFilesFromInput = async (siteName, useSavedSample, dataString) => {
-  console.log(`Please wait for downloading q2a projects for ${siteName}...`);
-  await cloneProject('q2a.js-api', `${siteName}/${siteName}_api`);
-  await cloneProject('q2a.js-frontend', `${siteName}/${siteName}_frontend`);
-
+  console.log(`Please wait for downloading projects for ${siteName}...`);
+  await cloneProject('q2a.js-api', `${siteName}/api`);
+  await cloneProject('q2a.js-frontend', `${siteName}/frontend`);
   console.log('Download succeeded');
   console.info('Please enter requested info for api >>>');
   await createEnvAndSavedConfigsFromInputAndDeploySettings(
     useSavedSample
       ? `${configsDirectory}/${siteName}.api.deploy_settings.json`
-      : `${outputDirectory}/${siteName}/${siteName}_api/deploy_settings.json`,
+      : `${outputDirectory}/${siteName}/api/deploy_settings.json`,
     `${configsDirectory}/${siteName}.api.deploy_settings.json`,
-    `${outputDirectory}/${siteName}/${siteName}_api/.env`,
+    `${outputDirectory}/${siteName}/api/.env`,
     [{ MYSQL_HOST: 'mysql' }]
   );
   console.info('Please enter requested info for frontend >>>');
   await createEnvAndSavedConfigsFromInputAndDeploySettings(
     useSavedSample
       ? `${configsDirectory}/${siteName}.frontend.deploy_settings.json`
-      : `${outputDirectory}/${siteName}/${siteName}_frontend/deploy_settings.json`,
+      : `${outputDirectory}/${siteName}/frontend/deploy_settings.json`,
     `${configsDirectory}/${siteName}.frontend.deploy_settings.json`,
-    `${outputDirectory}/${siteName}/${siteName}_frontend/frontend/.env`,
+    `${outputDirectory}/${siteName}/frontend/frontend/.env`,
     [{ NEXT_PUBLIC_GRAPHQL_URL: 'http://api:4000/graphql' }]
   );
   console.info('Please enter requested info for your domain >>>');
@@ -134,14 +133,9 @@ const createDockerComposerFromConfigs = (sampleConfig, dockerSettingFileNames) =
   );
   await copyFile(
     `${outputDirectory}/../docker/docker-compose.yaml`,
-    `${outputDirectory}/docker-compose.conf`
+    `${outputDirectory}/docker-compose.yaml`
   );
-  // console.log('Please wait for downloading q2a projects...');
-  // // await cloneProject('q2a.js-frontend', 'frontend');
-  // await cloneProject('q2a.js-api', 'api');
-  // await cloneProject('q2a.js-frontend', 'frontend');
-  //
-  // console.log('Download succeeded');
+
   const siteNameRegex = RegExp('.{3,}');
   const siteName = await prompt('Enter site name (dev for development )/siteName:', '', siteNameRegex);
   if (!fs.existsSync(`${configsDirectory}/${siteName}.docker.deploy_settings.json`)) {
@@ -153,12 +147,12 @@ const createDockerComposerFromConfigs = (sampleConfig, dockerSettingFileNames) =
     } else {
       createEnvFromSettingsJson(
         `${configsDirectory}/${siteName}.frontend.deploy_settings.json`,
-        `${outputDirectory}/${siteName}/${siteName}_frontend/.env`,
+        `${outputDirectory}/${siteName}/frontend/.env`,
         [{ NEXT_PUBLIC_GRAPHQL_URL: 'http://api:4000/graphql' }]
       );
       createEnvFromSettingsJson(
         `${configsDirectory}/${siteName}.api.deploy_settings.json`,
-        `${outputDirectory}/${siteName}/${siteName}_api/.env`,
+        `${outputDirectory}/${siteName}/api/.env`,
         [{ MYSQL_HOST: 'mysql' }]
       );
       const apiSettings = readDeploySettingFile(`${configsDirectory}/${siteName}.api.deploy_settings.json`);
@@ -188,7 +182,7 @@ const createDockerComposerFromConfigs = (sampleConfig, dockerSettingFileNames) =
   for (let i = 0; i < dockerSettingFiles.length; i += 1) {
     // eslint-disable-next-line no-await-in-loop
     const currentSiteName = dockerSettingFiles[i].substring(
-      dockerSettingFiles[i].indexOf(0) + 1,
+      dockerSettingFiles[i].indexOf('.docker.deploy_settings.json') + 1,
       dockerSettingFiles[i].lastIndexOf('.docker.deploy_settings.json')
     );
     const dockerFile = readDeploySettingFile(`${outputDirectory}/config/${dockerSettingFiles[i]}`);
@@ -215,8 +209,6 @@ const createDockerComposerFromConfigs = (sampleConfig, dockerSettingFileNames) =
     .readFileSync(`${outputDirectory}/../docker/docker-compose.yaml`)
     .toString('utf8');
   const dockerComposeConfig = createDockerComposerFromConfigs(dockerComposeSampleFile, dockerSettingFiles);
-  fs.writeFileSync(`${outputDirectory}/docker-compose.conf`, dockerComposeConfig);
-  const readDockerComposerConf = fs.readFileSync(`${outputDirectory}/docker-compose.conf`).toString('utf8');
-  fs.writeFileSync(`${outputDirectory}/docker-compose.yaml`, readDockerComposerConf);
+  fs.writeFileSync(`${outputDirectory}/docker-compose.yaml`, dockerComposeConfig);
   process.exit(0);
 })();

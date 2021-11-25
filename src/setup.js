@@ -185,7 +185,7 @@ const createDockerComposerFromConfigs = (sampleConfig, dockerSettingFileNames) =
       dockerSettingFiles[i].lastIndexOf('/') + 1,
       dockerSettingFiles[i].lastIndexOf('.docker.deploy_settings.json')
     );
-    const dockerFile = readDeploySettingFile(`${outputDirectory}/config/${dockerSettingFiles[i]}`);
+    const dockerFile = readDeploySettingFile(`${outputDirectory}/config/${currentSiteName}.docker.deploy_settings.json`);
     nginxConfig += getNginxDomainConfig(
       nginxSampleConfig,
       currentSiteName,

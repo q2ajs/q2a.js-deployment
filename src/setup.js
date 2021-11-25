@@ -179,13 +179,16 @@ const createDockerComposerFromConfigs = (sampleConfig, dockerSettingFileNames) =
 
   let nginxConfig = ``;
   const dockerEnv = [];
+  const apiSettings = readDeploySettingFile(`${configsDirectory}/${siteName}.api.deploy_settings.json`);
   for (let i = 0; i < dockerSettingFiles.length; i += 1) {
     // eslint-disable-next-line no-await-in-loop
     const currentSiteName = dockerSettingFiles[i].substring(
       dockerSettingFiles[i].lastIndexOf('/') + 1,
       dockerSettingFiles[i].lastIndexOf('.docker.deploy_settings.json')
     );
-    const dockerFile = readDeploySettingFile(`${outputDirectory}/config/${currentSiteName}.docker.deploy_settings.json`);
+    const dockerFile = readDeploySettingFile(
+      `${outputDirectory}/config/${currentSiteName}.docker.deploy_settings.json`
+    );
     nginxConfig += getNginxDomainConfig(
       nginxSampleConfig,
       currentSiteName,
@@ -193,6 +196,7 @@ const createDockerComposerFromConfigs = (sampleConfig, dockerSettingFileNames) =
       dockerFile.API_PORT.defaultValue,
       dockerFile.DOMAIN.defaultValue
     );
+    dockerEnv.push({ MYSQL_ROOT_PASSWORD: apiSettings.MYSQL_PASSWORD.defaultValue });
     for (let [key, value] of Object.entries(dockerFile)) {
       const result = {};
       key = `${currentSiteName}_${key}`;

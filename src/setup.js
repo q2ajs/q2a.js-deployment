@@ -38,7 +38,7 @@ const createEnvFilesFromInput = async (siteName, useSavedSample) => {
     true,
     [
       { MYSQL_HOST: 'mysql' },
-      { MYSQL_ROOT_PASSWORD: dockerSettings.MYSQL_PASSWORD.defaultValue },
+      { MYSQL_PASSWORD: dockerSettings.MYSQL_PASSWORD.defaultValue },
       { MYSQL_USER: dockerSettings.MYSQL_USER.defaultValue },
       { MYSQL_PORT: dockerSettings.MYSQL_PORT.defaultValue },
     ]
@@ -160,7 +160,7 @@ const createDockerComposerFromConfigs = (sampleConfig, dockerSettingFileNames) =
         `${outputDirectory}/${siteName}/api/.env`,
         [
           { MYSQL_HOST: 'mysql' },
-          { MYSQL_ROOT_PASSWORD: dockerSettings.MYSQL_PASSWORD.defaultValue },
+          { MYSQL_PASSWORD: dockerSettings.MYSQL_PASSWORD.defaultValue },
           { MYSQL_USER: dockerSettings.MYSQL_USER.defaultValue },
           { MYSQL_PORT: dockerSettings.MYSQL_PORT.defaultValue },
         ]

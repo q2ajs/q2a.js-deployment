@@ -80,7 +80,7 @@ const cloneProject = async (projectName, outPutFolderName) => {
     cdPath = `${outputDirectory}`;
   }
   await execShellCommand(`cd ${cdPath} && ${gitCommand}`);
-  await execShellCommand(`cd ${clonedProjectPath} && yarn install --production --frozen-lockfile`);
+  // await execShellCommand(`cd ${clonedProjectPath} && yarn install --production --frozen-lockfile`);
 };
 
 const createFolderIfNotExist = (directory) => {
@@ -120,6 +120,7 @@ const createEnvAndSavedConfigsFromInputAndDeploySettings = async (
   deploySettingsPath,
   outputSettingPath,
   outputEnvPath,
+  saveEnv = false,
   extraEnv = null
 ) => {
   const settings = readDeploySettingFile(deploySettingsPath);
@@ -129,7 +130,7 @@ const createEnvAndSavedConfigsFromInputAndDeploySettings = async (
   for (const [key, value] of Object.entries(settings)) {
     // eslint-disable-next-line no-await-in-loop
     const validationRegex = value.validationRegex.length > 0 ? new RegExp(value.validationRegex) : null;
-    if (value.getFromInput === 'true') {
+    if (value.getFromInput) {
       // eslint-disable-next-line no-await-in-loop
       const userInput = trim(await prompt(value.question, value.defaultValue, validationRegex));
       const result = {};
@@ -148,7 +149,7 @@ const createEnvAndSavedConfigsFromInputAndDeploySettings = async (
     }
   }
   writeJsonFile(outputSettingPath, outPutSettings);
-  // writeEnvFile(outputEnvPath, newContent);
+  if (saveEnv) writeEnvFile(outputEnvPath, newContent);
 };
 
 const createEnvFromSettingsJson = (deploySettingsPath, outputEnvPath, extraEnv) => {

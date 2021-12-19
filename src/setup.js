@@ -16,19 +16,32 @@ import {
   writeEnvFile,
 } from './utility.js';
 
-const createEnvFilesFromInput = async (siteName, useSavedSample, dataString) => {
-  console.log(`Please wait for downloading projects for ${siteName}...`);
-  await cloneProject('q2a.js-api', `${siteName}/api`);
-  await cloneProject('q2a.js-frontend', `${siteName}/frontend`);
-  console.log('Download succeeded');
+const createEnvFilesFromInput = async (siteName, useSavedSample) => {
+  console.info('Please enter requested info for your domain >>>');
+  await createEnvAndSavedConfigsFromInputAndDeploySettings(
+    useSavedSample
+      ? `${configsDirectory}/${siteName}.docker.deploy_settings.json`
+      : `${outputDirectory}/../deploy_settings.json`,
+    `${configsDirectory}/${siteName}.docker.deploy_settings.json`,
+    `${outputDirectory}/docker.env`,
+    false,
+    [{ SITE_NAME: siteName }]
+  );
   console.info('Please enter requested info for api >>>');
+  const dockerSettings = readDeploySettingFile(`${configsDirectory}/${siteName}.docker.deploy_settings.json`);
   await createEnvAndSavedConfigsFromInputAndDeploySettings(
     useSavedSample
       ? `${configsDirectory}/${siteName}.api.deploy_settings.json`
       : `${outputDirectory}/${siteName}/api/deploy_settings.json`,
     `${configsDirectory}/${siteName}.api.deploy_settings.json`,
     `${outputDirectory}/${siteName}/api/.env`,
-    [{ MYSQL_HOST: 'mysql' }]
+    true,
+    [
+      { MYSQL_HOST: 'mysql' },
+      { MYSQL_ROOT_PASSWORD: dockerSettings.MYSQL_PASSWORD.defaultValue },
+      { MYSQL_USER: dockerSettings.MYSQL_USER.defaultValue },
+      { MYSQL_PORT: dockerSettings.MYSQL_PORT.defaultValue },
+    ]
   );
   console.info('Please enter requested info for frontend >>>');
   await createEnvAndSavedConfigsFromInputAndDeploySettings(
@@ -36,23 +49,9 @@ const createEnvFilesFromInput = async (siteName, useSavedSample, dataString) => 
       ? `${configsDirectory}/${siteName}.frontend.deploy_settings.json`
       : `${outputDirectory}/${siteName}/frontend/deploy_settings.json`,
     `${configsDirectory}/${siteName}.frontend.deploy_settings.json`,
-    `${outputDirectory}/${siteName}/frontend/frontend/.env`,
-    [{ NEXT_PUBLIC_GRAPHQL_URL: 'http://api:4000/graphql' }]
-  );
-  console.info('Please enter requested info for your domain >>>');
-  const apiSettings = readDeploySettingFile(`${configsDirectory}/${siteName}.api.deploy_settings.json`);
-  await createEnvAndSavedConfigsFromInputAndDeploySettings(
-    useSavedSample
-      ? `${configsDirectory}/${siteName}.docker.deploy_settings.json`
-      : `${outputDirectory}/../deploy_settings.json`,
-    `${configsDirectory}/${siteName}.docker.deploy_settings.json`,
-    `${outputDirectory}/docker.env`,
-    [
-      { SITE_NAME: siteName },
-      { MYSQL_ROOT_PASSWORD: apiSettings.MYSQL_PASSWORD.defaultValue },
-      { MYSQL_DATABASE: apiSettings.MYSQL_DATABASE.defaultValue },
-    ],
-    dataString
+    `${outputDirectory}/${siteName}/frontend/.env`,
+    true,
+    [{ NEXT_PUBLIC_GRAPHQL_URL: `http://api:${dockerSettings.API_PORT.defaultValue}/graphql` }]
   );
 };
 
@@ -139,6 +138,12 @@ const createDockerComposerFromConfigs = (sampleConfig, dockerSettingFileNames) =
   const siteNameRegex = RegExp('[a-z]{3,}');
   // const siteNameRegex =/[a-z]/.test(siteNameRegex);
   const siteName = await prompt('Enter site name (dev for development )/siteName:', '', siteNameRegex);
+
+  console.log(`Please wait for downloading projects for ${siteName}...`);
+  await cloneProject('q2a.js-api', `${siteName}/api`);
+  await cloneProject('q2a.js-frontend', `${siteName}/frontend`);
+  console.log('Download succeeded');
+
   if (!fs.existsSync(`${configsDirectory}/${siteName}.docker.deploy_settings.json`)) {
     await createEnvFilesFromInput(siteName, false);
   } else {
@@ -146,25 +151,25 @@ const createDockerComposerFromConfigs = (sampleConfig, dockerSettingFileNames) =
     if (isAnswerYes(edit)) {
       await createEnvFilesFromInput(siteName, true);
     } else {
-      createEnvFromSettingsJson(
-        `${configsDirectory}/${siteName}.frontend.deploy_settings.json`,
-        `${outputDirectory}/${siteName}/frontend/.env`,
-        [{ NEXT_PUBLIC_GRAPHQL_URL: 'http://api:4000/graphql' }]
+      const dockerSettings = readDeploySettingFile(
+        `${configsDirectory}/${siteName}.docker.deploy_settings.json`
       );
+
       createEnvFromSettingsJson(
         `${configsDirectory}/${siteName}.api.deploy_settings.json`,
         `${outputDirectory}/${siteName}/api/.env`,
-        [{ MYSQL_HOST: 'mysql' }]
-      );
-      const apiSettings = readDeploySettingFile(`${configsDirectory}/${siteName}.api.deploy_settings.json`);
-      createEnvFromSettingsJson(
-        `${configsDirectory}/${siteName}.docker.deploy_settings.json`,
-        `${outputDirectory}/docker.env`,
         [
-          { SITE_NAME: siteName },
-          { MYSQL_ROOT_PASSWORD: apiSettings.MYSQL_PASSWORD.defaultValue },
-          { MYSQL_DATABASE: apiSettings.MYSQL_DATABASE.defaultValue },
+          { MYSQL_HOST: 'mysql' },
+          { MYSQL_ROOT_PASSWORD: dockerSettings.MYSQL_PASSWORD.defaultValue },
+          { MYSQL_USER: dockerSettings.MYSQL_USER.defaultValue },
+          { MYSQL_PORT: dockerSettings.MYSQL_PORT.defaultValue },
         ]
+      );
+
+      createEnvFromSettingsJson(
+        `${configsDirectory}/${siteName}.frontend.deploy_settings.json`,
+        `${outputDirectory}/${siteName}/frontend/.env`,
+        [{ NEXT_PUBLIC_GRAPHQL_URL: `http://api:${dockerSettings.API_PORT.defaultValue}/graphql` }]
       );
     }
   }
@@ -197,10 +202,9 @@ const createDockerComposerFromConfigs = (sampleConfig, dockerSettingFileNames) =
       dockerFile.API_PORT.defaultValue,
       dockerFile.DOMAIN.defaultValue
     );
-    dockerEnv.push({ MYSQL_ROOT_PASSWORD: apiSettings.MYSQL_PASSWORD.defaultValue });
     for (let [key, value] of Object.entries(dockerFile)) {
       const result = {};
-      key = `${currentSiteName}_${key}`;
+      if (value.relatedToSite) key = `${currentSiteName}_${key}`;
       result[key] = `${value.defaultValue}`;
       dockerEnv.push(result);
     }

@@ -1,23 +1,50 @@
 {
+  "MYSQL_USER": {
+    "question": "Enter your mysql user ? ",
+    "defaultValue": "root",
+    "validationRegex": ".{3,}",
+    "type": "string",
+    "getFromInput": true,
+    "relatedToSite": false
+  },
+  "MYSQL_PASSWORD": {
+    "question": "Enter your mysql password ? ",
+    "defaultValue": "",
+    "validationRegex": ".{5,}",
+    "type": "string",
+    "getFromInput": true,
+    "relatedToSite": false
+  },
+  "MYSQL_PORT": {
+    "question": "Enter your mysql port ? ",
+    "defaultValue": "3306",
+    "validationRegex": "^\\d+$",
+    "type": "integer",
+    "getFromInput": true,
+    "relatedToSite": false
+  },
   "DOMAIN": {
     "question": "Enter your domain ? ",
     "defaultValue": "",
     "validationRegex": "",
     "type": "domain",
-    "getFromInput": "true"
+    "getFromInput": true,
+    "relatedToSite": true
   },
   "FRONTEND_PORT": {
     "question": "Enter your frontend port ? ",
     "defaultValue": "",
     "validationRegex": "^\\d+$",
     "type": "port",
-    "getFromInput": "true"
+    "getFromInput": true,
+    "relatedToSite": true
   },
   "API_PORT": {
     "question": "Enter your API port ? ",
     "defaultValue": "",
     "validationRegex": "^\\d+$",
     "type": "port",
-    "getFromInput": "true"
+    "getFromInput": true,
+    "relatedToSite": true
   }
 }

@@ -37,7 +37,7 @@
   "scripts": {
     "install_prod_modules": "yarn install --production --frozen-lockfile",
     "setup": "node src/setup.js",
-    "deploy_docker": "cd cloned_projects && docker-compose build --no-cache && docker-compose --env-file ./docker.env up -d",
+    "deploy_docker": "cd cloned_projects &&  docker-compose --env-file ./docker.env up -d --build",
     "api_run_dev": "cd cloned_projects/api && yarn dev",
     "frontend_run_dev": "cd cloned_projects/frontend && yarn dev"
   },

@@ -67,7 +67,7 @@ services:
      stdin_open: true
      tty: true
      ports:
-       - ${%SITE_NAME%_FRONTEND_PORT}:4000
+       - ${%SITE_NAME%_FRONTEND_PORT}:3000
 %Frontend_End%
 volumes:
   db-config:

@@ -184,7 +184,7 @@ const createDockerComposerFromConfigs = (sampleConfig, dockerSettingFileNames) =
       createEnvFromSettingsJson(
         `${configsDirectory}/${siteName}.frontend.deploy_settings.json`,
         `${outputDirectory}/${siteName}/frontend/.env`,
-        [{ NEXT_PUBLIC_GRAPHQL_URL: `http://api:${dockerSettings.API_PORT.defaultValue}/graphql` }]
+        [{ NEXT_PUBLIC_GRAPHQL_URL: `http://${siteName}_api:4000/graphql` }]
       );
     }
   }

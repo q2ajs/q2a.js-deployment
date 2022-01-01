@@ -30,21 +30,5 @@
     "type": "domain",
     "getFromInput": true,
     "relatedToSite": true
-  },
-  "FRONTEND_PORT": {
-    "question": "Enter your frontend port ? ",
-    "defaultValue": "",
-    "validationRegex": "^\\d+$",
-    "type": "port",
-    "getFromInput": true,
-    "relatedToSite": true
-  },
-  "API_PORT": {
-    "question": "Enter your API port ? ",
-    "defaultValue": "",
-    "validationRegex": "^\\d+$",
-    "type": "port",
-    "getFromInput": true,
-    "relatedToSite": true
   }
 }

@@ -61,17 +61,15 @@ const getNginxEndConfig = (sampleConfig) => {
   return sampleConfig.substring(sampleConfig.lastIndexOf('%end%') + '%end%'.length, sampleConfig.length);
 };
 
-const getNginxDomainConfig = (sampleConfig, SITE_NAME, FRONT_END_PORT, API_PORT, DOMAIN) => {
+const getNginxDomainConfig = (sampleConfig, SITE_NAME, DOMAIN) => {
   const configToRepeat = sampleConfig.substring(
     sampleConfig.indexOf('%begin%') + '%begin%'.length,
     sampleConfig.lastIndexOf('%end%')
   );
-  const find = ['%frontend%', '%frontend_port%', '%api%', '%api_port%', '%sitename%', '%domain%'];
+  const find = ['%frontend%', '%api%', '%sitename%', '%domain%'];
   const replace = [
     `${SITE_NAME}_frontend`,
-    `${FRONT_END_PORT}`,
     `${SITE_NAME}_api`,
-    `${API_PORT}`,
     `${SITE_NAME}`,
     `${DOMAIN}`,
   ];
@@ -212,8 +210,6 @@ const createDockerComposerFromConfigs = (sampleConfig, dockerSettingFileNames) =
     nginxConfig += getNginxDomainConfig(
       nginxSampleConfig,
       currentSiteName,
-      dockerFile.FRONTEND_PORT.defaultValue,
-      dockerFile.API_PORT.defaultValue,
       dockerFile.DOMAIN.defaultValue
     );
     for (let [key, value] of Object.entries(dockerFile)) {

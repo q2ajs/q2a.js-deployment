@@ -50,8 +50,6 @@ services:
        WAIT_HOSTS: mysql:3306
      stdin_open: true
      tty: true
-     ports:
-       - ${%SITE_NAME%_API_PORT}:4000
 %API_End%
 %Frontend_Begin%
   %SITE_NAME%_frontend:
@@ -66,8 +64,6 @@ services:
        - mysql
      stdin_open: true
      tty: true
-     ports:
-       - ${%SITE_NAME%_FRONTEND_PORT}:3000
 %Frontend_End%
 volumes:
   db-config:

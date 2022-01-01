@@ -6,6 +6,8 @@ import { exec } from 'child_process';
 const outputDirectory = `${path.resolve()}/cloned_projects`;
 const configsDirectory = `${outputDirectory}/config`;
 const nginxDirectory = `${outputDirectory}/nginx`;
+const sqlDirectory = `${outputDirectory}/db`;
+const sqlInitDirectory = `${sqlDirectory}/init`;
 
 const trim = (string) => {
   return string.replace(/^\s+|\s+$/g, '');
@@ -180,6 +182,8 @@ export {
   outputDirectory,
   configsDirectory,
   nginxDirectory,
+  sqlDirectory,
+  sqlInitDirectory,
   cloneProject,
   createFolderIfNotExist,
   copyFile,

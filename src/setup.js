@@ -1,110 +1,251 @@
-import readline from 'readline';
 import fs from 'fs';
-import path from 'path';
-import { exec } from 'child_process';
+import replaceOnce from 'replace-once';
+import {
+  prompt,
+  readDeploySettingFile,
+  isAnswerYes,
+  outputDirectory,
+  configsDirectory,
+  nginxDirectory,
+  sqlDirectory,
+  cloneProject,
+  createFolderIfNotExist,
+  copyFile,
+  getFileNamesInDirectory,
+  createEnvAndSavedConfigsFromInputAndDeploySettings,
+  createEnvFromSettingsJson,
+  writeEnvFile,
+  sqlInitDirectory,
+} from './utility.js';
 
-const outputDirectory = `${path.resolve()}/cloned_projects`;
-const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
-
-const prompt = (query, defaultValue = null) =>
-  new Promise((resolve) => {
-    let queryAndDefault = query;
-    if (defaultValue) queryAndDefault += ` ( e.g ${defaultValue} ) : `;
-    else queryAndDefault += ' : ';
-    return rl.question(queryAndDefault, resolve);
-  });
-
-const execShellCommand = (cmd) => {
-  return new Promise((resolve, reject) => {
-    exec(cmd, (error, stdout, stderr) => {
-      if (error) {
-        console.warn(error);
-      }
-      resolve(stdout || stderr);
-    });
-  });
-};
-const replaceAll = (string, search, replace) => {
-  return string.split(search).join(replace);
-};
-
-const trim = (string) => {
-  return string.replace(/^\s+|\s+$/g, '');
-};
-
-const readEnvFile = (filePath) => {
-  const lines = trim(replaceAll(fs.readFileSync(filePath).toString('utf8'), '\r', '')).split('\n');
-  const keyValues = [];
-  lines.forEach((line) => {
-    const parts = line.split('=');
-    const keyValue = {};
-    keyValue[parts[0]] = parts[1];
-    keyValues.push(keyValue);
-  });
-  return keyValues;
-};
-
-const writeEnvFile = (filePath, newContent) => {
-  console.log(filePath);
-
-  let dataString = '';
-  // eslint-disable-next-line no-restricted-syntax
-  for (const content of newContent) {
-    const keyValue = Object.entries(content)[0];
-    dataString += `${keyValue[0]}=${keyValue[1]}`;
-    dataString += '\n';
-  }
-  fs.writeFileSync(filePath, dataString);
-};
-
-const cloneProject = async (projectName, outPutFolderName) => {
-  const clonedProjectPath = `${outputDirectory}/${outPutFolderName}`;
-  let gitCommand = '';
-  let cdPath = '';
-  if (fs.existsSync(clonedProjectPath)) {
-    gitCommand = 'git pull';
-    cdPath = `${clonedProjectPath}`;
-  } else {
-    gitCommand = `git clone https://github.com/q2ajs/${projectName}.git ${outPutFolderName}`;
-    cdPath = `${outputDirectory}`;
-  }
-  await execShellCommand(`cd ${cdPath} && ${gitCommand}`);
-  await execShellCommand(`cd ${clonedProjectPath} && yarn`);
+const createEnvFilesFromInput = async (siteName, useSavedSample) => {
+  console.info('Please enter requested info for your domain >>>');
+  await createEnvAndSavedConfigsFromInputAndDeploySettings(
+    useSavedSample
+      ? `${configsDirectory}/${siteName}.docker.deploy_settings.json`
+      : `${outputDirectory}/../deploy_settings.json`,
+    `${configsDirectory}/${siteName}.docker.deploy_settings.json`,
+    `${outputDirectory}/docker.env`,
+    false,
+    [{ SITE_NAME: siteName }]
+  );
+  console.info('Please enter requested info for api >>>');
+  const dockerSettings = readDeploySettingFile(`${configsDirectory}/${siteName}.docker.deploy_settings.json`);
+  await createEnvAndSavedConfigsFromInputAndDeploySettings(
+    useSavedSample
+      ? `${configsDirectory}/${siteName}.api.deploy_settings.json`
+      : `${outputDirectory}/${siteName}/api/deploy_settings.json`,
+    `${configsDirectory}/${siteName}.api.deploy_settings.json`,
+    `${outputDirectory}/${siteName}/api/.env`,
+    true,
+    [
+      { MYSQL_HOST: 'mysql' },
+      { MYSQL_PASSWORD: dockerSettings.MYSQL_PASSWORD.defaultValue },
+      { MYSQL_USER: dockerSettings.MYSQL_USER.defaultValue },
+      { MYSQL_PORT: dockerSettings.MYSQL_PORT.defaultValue },
+    ]
+  );
+  console.info('Please enter requested info for frontend >>>');
+  await createEnvAndSavedConfigsFromInputAndDeploySettings(
+    useSavedSample
+      ? `${configsDirectory}/${siteName}.frontend.deploy_settings.json`
+      : `${outputDirectory}/${siteName}/frontend/deploy_settings.json`,
+    `${configsDirectory}/${siteName}.frontend.deploy_settings.json`,
+    `${outputDirectory}/${siteName}/frontend/.env`,
+    true,
+    [{ NEXT_PUBLIC_GRAPHQL_URL: `http://${siteName}_api:4000/graphql` }]
+  );
 };
 
-const readSampleEnvAndCreateEnv = async (sampleEnvPath, outputEnvPath) => {
-  const envContent = readEnvFile(sampleEnvPath);
-  const newContent = [];
-  // eslint-disable-next-line no-restricted-syntax
-  for (const content of envContent) {
-    const keyValue = Object.entries(content)[0];
+const getNginxEndConfig = (sampleConfig) => {
+  return sampleConfig.substring(sampleConfig.lastIndexOf('%end%') + '%end%'.length, sampleConfig.length);
+};
+
+const getNginxDomainConfig = (sampleConfig, SITE_NAME, DOMAIN) => {
+  const configToRepeat = sampleConfig.substring(
+    sampleConfig.indexOf('%begin%') + '%begin%'.length,
+    sampleConfig.lastIndexOf('%end%')
+  );
+  const find = ['%frontend%', '%api%', '%sitename%', '%domain%'];
+  const replace = [
+    `${SITE_NAME}_frontend`,
+    `${SITE_NAME}_api`,
+    `${SITE_NAME}`,
+    `${DOMAIN}`,
+  ];
+  return replaceOnce(configToRepeat, find, replace, 'gi');
+};
+
+const getMySqlDBConfig = (sampleConfig, mySqlDB) => {
+  const configToRepeat = sampleConfig.substring(
+    sampleConfig.indexOf('%begin%') + '%begin%'.length,
+    sampleConfig.lastIndexOf('%end%')
+  );
+  const find = ['%database_name%'];
+  const replace = [`${mySqlDB}`];
+  return replaceOnce(configToRepeat, find, replace, 'gi');
+};
+
+const createDockerComposerFromConfigs = (sampleConfig, dockerSettingFileNames) => {
+  const dataArray = [];
+  let dockerComposeConfig = '';
+  // First part of file
+  dockerComposeConfig += sampleConfig.substring(0, sampleConfig.indexOf('%'));
+  let nginxDepend = '';
+
+  for (let i = 0; i < dockerSettingFileNames.length; i += 1) {
     // eslint-disable-next-line no-await-in-loop
-    const item = await prompt(keyValue[0], keyValue[1]);
-    const result = {};
-    result[keyValue[0]] = item;
-    newContent.push(result);
+    const siteName = dockerSettingFileNames[i].substring(
+      dockerSettingFileNames[i].lastIndexOf(`/`) + 1,
+      dockerSettingFileNames[i].lastIndexOf('.docker.deploy_settings.json')
+    );
+    const find = ['%SITE_NAME%'];
+    const replace = [`${siteName}`];
+    nginxDepend += `${sampleConfig.substring(
+      sampleConfig.indexOf('%Nginx_Begin%') + '%Nginx_Begin%'.length,
+      sampleConfig.lastIndexOf('%Nginx_End%')
+    )}\n`;
+    const configToRepeatAPI = sampleConfig.substring(
+      sampleConfig.indexOf('%API_Begin%') + '%API_Begin%'.length,
+      sampleConfig.lastIndexOf('%API_End%')
+    );
+    const configToRepeatFrontend = sampleConfig.substring(
+      sampleConfig.indexOf('%Frontend_Begin%') + '%Frontend_Begin%'.length,
+      sampleConfig.lastIndexOf('%Frontend_End%')
+    );
+    nginxDepend = replaceOnce(nginxDepend, find, replace, 'gi');
+    const APISection = replaceOnce(configToRepeatAPI, find, replace, 'gi');
+    const frontendSection = replaceOnce(configToRepeatFrontend, find, replace, 'gi');
+    // eslint-disable-next-line no-param-reassign
+    dataArray.push(APISection);
+    dataArray.push(frontendSection);
   }
-  console.log(newContent);
-
-  writeEnvFile(outputEnvPath, newContent);
+  dataArray.unshift(nginxDepend);
+  for (const section in dataArray) {
+    dockerComposeConfig += dataArray[section];
+  }
+  dockerComposeConfig += sampleConfig.substring(sampleConfig.lastIndexOf('%') + 1, sampleConfig.length);
+  dockerComposeConfig = dockerComposeConfig.replace(/(^[ \t]*\r*\n)/gm, ''); // remove empty lines
+  return dockerComposeConfig;
 };
 
 (async () => {
-  if (!fs.existsSync(outputDirectory)) {
-    fs.mkdirSync(outputDirectory);
-  }
-  console.log('Please wait for downloading q2a projects...');
-  await cloneProject('q2a.js-frontend', 'frontend');
-  await cloneProject('q2a.js-api', 'api');
-
-  console.log('Download succeeded');
-  console.log('Please enter requested info for api >>>');
-  await readSampleEnvAndCreateEnv(`${outputDirectory}/api/.sample.env`, `${outputDirectory}/api/.env`);
-
-  console.log('Please enter requested info for frontend >>>');
-  await readSampleEnvAndCreateEnv(
-    `${outputDirectory}/frontend/.sample.env`,
-    `${outputDirectory}/frontend/.env`
+  createFolderIfNotExist(outputDirectory);
+  createFolderIfNotExist(configsDirectory);
+  createFolderIfNotExist(sqlDirectory);
+  createFolderIfNotExist(sqlInitDirectory);
+  // nginx folder
+  createFolderIfNotExist(nginxDirectory);
+  await copyFile(`${outputDirectory}/../nginx/default.conf`, `${nginxDirectory}/default.conf`);
+  await copyFile(`${outputDirectory}/../nginx/Dockerfile`, `${nginxDirectory}/Dockerfile`);
+  await copyFile(
+    `${outputDirectory}/../docker/docker-compose.yaml`,
+    `${outputDirectory}/docker-compose.yaml`
   );
+  await copyFile(
+    `${outputDirectory}/../docker/docker-compose.yaml`,
+    `${outputDirectory}/docker-compose.yaml`
+  );
+  await copyFile(`${outputDirectory}/../mysql/01.sql`, `${sqlInitDirectory}/01.sql`);
+
+  const siteNameRegex = RegExp('[a-z]{3,}');
+  // const siteNameRegex =/[a-z]/.test(siteNameRegex);
+  const siteName = await prompt('Enter site name (dev for development )/siteName:', '', siteNameRegex);
+
+  console.log(`Please wait for downloading projects for ${siteName}...`);
+  await cloneProject('q2a.js-api', `${siteName}/api`);
+  await cloneProject('q2a.js-frontend', `${siteName}/frontend`);
+  console.log('Download succeeded');
+
+  if (!fs.existsSync(`${configsDirectory}/${siteName}.docker.deploy_settings.json`)) {
+    await createEnvFilesFromInput(siteName, false);
+  } else {
+    const edit = await prompt('Do you want edit information?(Y/N)');
+    if (isAnswerYes(edit)) {
+      await createEnvFilesFromInput(siteName, true);
+    } else {
+      const dockerSettings = readDeploySettingFile(
+        `${configsDirectory}/${siteName}.docker.deploy_settings.json`
+      );
+
+      createEnvFromSettingsJson(
+        `${configsDirectory}/${siteName}.api.deploy_settings.json`,
+        `${outputDirectory}/${siteName}/api/.env`,
+        [
+          { MYSQL_HOST: 'mysql' },
+          { MYSQL_PASSWORD: dockerSettings.MYSQL_PASSWORD.defaultValue },
+          { MYSQL_USER: dockerSettings.MYSQL_USER.defaultValue },
+          { MYSQL_PORT: dockerSettings.MYSQL_PORT.defaultValue },
+        ]
+      );
+
+      createEnvFromSettingsJson(
+        `${configsDirectory}/${siteName}.frontend.deploy_settings.json`,
+        `${outputDirectory}/${siteName}/frontend/.env`,
+        [{ NEXT_PUBLIC_GRAPHQL_URL: `http://${siteName}_api:4000/graphql` }]
+      );
+    }
+  }
+  const nginxSampleConfig = await fs
+    .readFileSync(`${outputDirectory}/../nginx/default.conf`)
+    .toString('utf8');
+
+  // Nginx configs
+  const dockerSettingFiles = await getFileNamesInDirectory(
+    `${configsDirectory}`,
+    '.docker.deploy_settings.json'
+  );
+
+  let nginxConfig = ``;
+  const dockerEnv = [];
+  for (let i = 0; i < dockerSettingFiles.length; i += 1) {
+    // eslint-disable-next-line no-await-in-loop
+    const currentSiteName = dockerSettingFiles[i].substring(
+      dockerSettingFiles[i].lastIndexOf('/') + 1,
+      dockerSettingFiles[i].lastIndexOf('.docker.deploy_settings.json')
+    );
+    const dockerFile = readDeploySettingFile(
+      `${outputDirectory}/config/${currentSiteName}.docker.deploy_settings.json`
+    );
+    nginxConfig += getNginxDomainConfig(
+      nginxSampleConfig,
+      currentSiteName,
+      dockerFile.DOMAIN.defaultValue
+    );
+    for (let [key, value] of Object.entries(dockerFile)) {
+      const result = {};
+      if (value.relatedToSite) key = `${currentSiteName}_${key}`;
+      result[key] = `${value.defaultValue}`;
+      dockerEnv.push(result);
+    }
+  }
+  await writeEnvFile(`${outputDirectory}/docker.env`, dockerEnv);
+  nginxConfig += getNginxEndConfig(nginxSampleConfig);
+  fs.writeFileSync(`${nginxDirectory}/default.conf`, nginxConfig);
+
+  // Docker compose config
+  const dockerComposeSampleFile = fs
+    .readFileSync(`${outputDirectory}/../docker/docker-compose.yaml`)
+    .toString('utf8');
+  const dockerComposeConfig = createDockerComposerFromConfigs(dockerComposeSampleFile, dockerSettingFiles);
+  fs.writeFileSync(`${outputDirectory}/docker-compose.yaml`, dockerComposeConfig);
+
+  // Mysql config
+  let apiConfig = ``;
+  const apiSettingFiles = await getFileNamesInDirectory(`${configsDirectory}`, '.api.deploy_settings.json');
+  const mysqlSampleFile = fs.readFileSync(`${outputDirectory}/../mysql/01.sql`).toString('utf8');
+  for (let i = 0; i < apiSettingFiles.length; i += 1) {
+    // eslint-disable-next-line no-await-in-loop
+    const currentSiteName = apiSettingFiles[i].substring(
+      apiSettingFiles[i].lastIndexOf('/') + 1,
+      apiSettingFiles[i].lastIndexOf('.api.deploy_settings.json')
+    );
+    const apiFile = readDeploySettingFile(
+      `${outputDirectory}/config/${currentSiteName}.api.deploy_settings.json`
+    );
+    apiConfig += getMySqlDBConfig(mysqlSampleFile, apiFile.MYSQL_DATABASE.defaultValue);
+  }
+  apiConfig += getNginxEndConfig(mysqlSampleFile);
+  fs.writeFileSync(`${sqlInitDirectory}/01.sql`, apiConfig);
   process.exit(0);
 })();

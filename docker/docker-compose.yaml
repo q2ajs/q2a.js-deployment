@@ -1,0 +1,71 @@
+version: '3.8'
+services:
+  mysql:
+    image: mysql:5.7
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_PASSWORD}
+    ports:
+      - ${MYSQL_PORT}:3306
+    volumes:
+      - ./db/init/:/docker-entrypoint-initdb.d
+      - ./db/config/:/etc/mysql
+      - ./db/data/:/var/lib/mysql
+      - ./db/backup/:/data_backup/data
+    command: ['mysqld', '--character-set-server=utf8mb4', '--collation-server=utf8mb4_general_ci']
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    container_name: phpmyadmin
+    links:
+      - mysql
+    environment:
+      PMA_HOST: mysql
+      PMA_PORT: 3306
+      PMA_ARBITRARY: 1
+    restart: always
+    ports:
+      - 8081:80
+  nginx:
+    build:
+      context: ./nginx/
+      dockerfile: Dockerfile
+    ports:
+      - 80:80
+    depends_on:
+%Nginx_Begin%
+      - %SITE_NAME%_api
+      - %SITE_NAME%_frontend
+%Nginx_End%
+%API_Begin%
+  %SITE_NAME%_api:
+     build:
+       context: ./%SITE_NAME%/api/
+       dockerfile: Dockerfile
+     image: "%SITE_NAME%-api"
+     links:
+       - mysql
+     depends_on:
+       - mysql
+     environment:
+       WAIT_HOSTS: mysql:3306
+     stdin_open: true
+     tty: true
+%API_End%
+%Frontend_Begin%
+  %SITE_NAME%_frontend:
+     build:
+       context: ./%SITE_NAME%/frontend/
+       dockerfile: Dockerfile
+     image: "%SITE_NAME%-frontend"
+     links:
+       - %SITE_NAME%_api
+     depends_on:
+       - %SITE_NAME%_api
+       - mysql
+     stdin_open: true
+     tty: true
+%Frontend_End%
+volumes:
+  db-config:
+  db-data:
+

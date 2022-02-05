@@ -22,22 +22,30 @@ const createEnvFilesFromInput = async (siteName, useSavedSample) => {
   console.info('Please enter requested info for your domain >>>');
   await createEnvAndSavedConfigsFromInputAndDeploySettings(
     useSavedSample
-      ? `${configsDirectory}/${siteName}.docker.deploy_settings.json`
+      ? `${configsDirectory}/${siteName}.main.deploy_settings.json`
       : `${outputDirectory}/../deploy_settings.json`,
-    `${configsDirectory}/${siteName}.docker.deploy_settings.json`,
-    `${outputDirectory}/docker.env`,
-    false,
+    `${configsDirectory}/${siteName}.main.deploy_settings.json`,
+    null,
     [{ SITE_NAME: siteName }]
   );
+  const dockerSettings = readDeploySettingFile(`${configsDirectory}/${siteName}.main.deploy_settings.json`);
+
+  console.log(`Please wait for downloading projects for ${siteName}...`);
+  await cloneProject(dockerSettings.API_BRANCH_TO_CLONE.defaultValue, 'q2a.js-api', `${siteName}/api`);
+  await cloneProject(
+    dockerSettings.FRONTEND_BRANCH_TO_CLONE.defaultValue,
+    'q2a.js-frontend',
+    `${siteName}/frontend`
+  );
+  console.log('Download succeeded');
+
   console.info('Please enter requested info for api >>>');
-  const dockerSettings = readDeploySettingFile(`${configsDirectory}/${siteName}.docker.deploy_settings.json`);
   await createEnvAndSavedConfigsFromInputAndDeploySettings(
     useSavedSample
       ? `${configsDirectory}/${siteName}.api.deploy_settings.json`
       : `${outputDirectory}/${siteName}/api/deploy_settings.json`,
     `${configsDirectory}/${siteName}.api.deploy_settings.json`,
     `${outputDirectory}/${siteName}/api/.env`,
-    true,
     [
       { MYSQL_HOST: 'mysql' },
       { MYSQL_PASSWORD: dockerSettings.MYSQL_PASSWORD.defaultValue },
@@ -52,7 +60,6 @@ const createEnvFilesFromInput = async (siteName, useSavedSample) => {
       : `${outputDirectory}/${siteName}/frontend/deploy_settings.json`,
     `${configsDirectory}/${siteName}.frontend.deploy_settings.json`,
     `${outputDirectory}/${siteName}/frontend/.env`,
-    true,
     [{ NEXT_PUBLIC_GRAPHQL_URL: `http://${siteName}_api:4000/graphql` }]
   );
 };
@@ -67,12 +74,7 @@ const getNginxDomainConfig = (sampleConfig, SITE_NAME, DOMAIN) => {
     sampleConfig.lastIndexOf('%end%')
   );
   const find = ['%frontend%', '%api%', '%sitename%', '%domain%'];
-  const replace = [
-    `${SITE_NAME}_frontend`,
-    `${SITE_NAME}_api`,
-    `${SITE_NAME}`,
-    `${DOMAIN}`,
-  ];
+  const replace = [`${SITE_NAME}_frontend`, `${SITE_NAME}_api`, `${SITE_NAME}`, `${DOMAIN}`];
   return replaceOnce(configToRepeat, find, replace, 'gi');
 };
 
@@ -97,7 +99,7 @@ const createDockerComposerFromConfigs = (sampleConfig, dockerSettingFileNames) =
     // eslint-disable-next-line no-await-in-loop
     const siteName = dockerSettingFileNames[i].substring(
       dockerSettingFileNames[i].lastIndexOf(`/`) + 1,
-      dockerSettingFileNames[i].lastIndexOf('.docker.deploy_settings.json')
+      dockerSettingFileNames[i].lastIndexOf('.main.deploy_settings.json')
     );
     const find = ['%SITE_NAME%'];
     const replace = [`${siteName}`];
@@ -152,20 +154,20 @@ const createDockerComposerFromConfigs = (sampleConfig, dockerSettingFileNames) =
   // const siteNameRegex =/[a-z]/.test(siteNameRegex);
   const siteName = await prompt('Enter site name (dev for development )/siteName:', '', siteNameRegex);
 
-  console.log(`Please wait for downloading projects for ${siteName}...`);
-  await cloneProject('q2a.js-api', `${siteName}/api`);
-  await cloneProject('q2a.js-frontend', `${siteName}/frontend`);
-  console.log('Download succeeded');
-
-  if (!fs.existsSync(`${configsDirectory}/${siteName}.docker.deploy_settings.json`)) {
+  if (!fs.existsSync(`${configsDirectory}/${siteName}.main.deploy_settings.json`)) {
     await createEnvFilesFromInput(siteName, false);
   } else {
     const edit = await prompt('Do you want edit information?(Y/N)');
     if (isAnswerYes(edit)) {
       await createEnvFilesFromInput(siteName, true);
     } else {
+      console.log(`Please wait for downloading projects for ${siteName}...`);
+      await cloneProject('q2a.js-api', `${siteName}/api`);
+      await cloneProject('q2a.js-frontend', `${siteName}/frontend`);
+      console.log('Download succeeded');
+
       const dockerSettings = readDeploySettingFile(
-        `${configsDirectory}/${siteName}.docker.deploy_settings.json`
+        `${configsDirectory}/${siteName}.main.deploy_settings.json`
       );
 
       createEnvFromSettingsJson(
@@ -193,7 +195,7 @@ const createDockerComposerFromConfigs = (sampleConfig, dockerSettingFileNames) =
   // Nginx configs
   const dockerSettingFiles = await getFileNamesInDirectory(
     `${configsDirectory}`,
-    '.docker.deploy_settings.json'
+    '.main.deploy_settings.json'
   );
 
   let nginxConfig = ``;
@@ -202,16 +204,12 @@ const createDockerComposerFromConfigs = (sampleConfig, dockerSettingFileNames) =
     // eslint-disable-next-line no-await-in-loop
     const currentSiteName = dockerSettingFiles[i].substring(
       dockerSettingFiles[i].lastIndexOf('/') + 1,
-      dockerSettingFiles[i].lastIndexOf('.docker.deploy_settings.json')
+      dockerSettingFiles[i].lastIndexOf('.main.deploy_settings.json')
     );
     const dockerFile = readDeploySettingFile(
-      `${outputDirectory}/config/${currentSiteName}.docker.deploy_settings.json`
+      `${outputDirectory}/config/${currentSiteName}.main.deploy_settings.json`
     );
-    nginxConfig += getNginxDomainConfig(
-      nginxSampleConfig,
-      currentSiteName,
-      dockerFile.DOMAIN.defaultValue
-    );
+    nginxConfig += getNginxDomainConfig(nginxSampleConfig, currentSiteName, dockerFile.DOMAIN.defaultValue);
     for (let [key, value] of Object.entries(dockerFile)) {
       const result = {};
       if (value.relatedToSite) key = `${currentSiteName}_${key}`;

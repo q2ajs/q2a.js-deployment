@@ -69,7 +69,7 @@ const isAnswerYes = (input) => {
   return lowerCaseInput === 'y' || lowerCaseInput === 'yes';
 };
 
-const cloneProject = async (projectName, outPutFolderName) => {
+const cloneProject = async (branchName, projectName, outPutFolderName) => {
   const clonedProjectPath = `${outputDirectory}/${outPutFolderName}`;
   let gitCommand = '';
   let cdPath = '';
@@ -77,7 +77,7 @@ const cloneProject = async (projectName, outPutFolderName) => {
     gitCommand = 'git pull';
     cdPath = `${clonedProjectPath}`;
   } else {
-    gitCommand = `git clone https://github.com/q2ajs/${projectName}.git -b fix/deployment --single-branch ${outPutFolderName}`;
+    gitCommand = `git clone https://github.com/q2ajs/${projectName}.git -b ${branchName} --single-branch ${outPutFolderName}`;
     //  gitCommand = `git clone https://github.com/q2ajs/${projectName}.git ${outPutFolderName}`;
     cdPath = `${outputDirectory}`;
   }
@@ -122,7 +122,6 @@ const createEnvAndSavedConfigsFromInputAndDeploySettings = async (
   deploySettingsPath,
   outputSettingPath,
   outputEnvPath,
-  saveEnv = false,
   extraEnv = null
 ) => {
   const settings = readDeploySettingFile(deploySettingsPath);
@@ -151,7 +150,7 @@ const createEnvAndSavedConfigsFromInputAndDeploySettings = async (
     }
   }
   writeJsonFile(outputSettingPath, outPutSettings);
-  if (saveEnv) writeEnvFile(outputEnvPath, newContent);
+  if (outputEnvPath != null) writeEnvFile(outputEnvPath, newContent);
 };
 
 const createEnvFromSettingsJson = (deploySettingsPath, outputEnvPath, extraEnv) => {

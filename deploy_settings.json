@@ -30,5 +30,21 @@
     "type": "domain",
     "getFromInput": true,
     "relatedToSite": true
+  },
+  "API_BRANCH_TO_CLONE": {
+    "question": "Enter your api branch ? ",
+    "defaultValue": "main",
+    "validationRegex": ".{3,}",
+    "type": "string",
+    "getFromInput": true,
+    "relatedToSite": true
+  },
+  "FRONTEND_BRANCH_TO_CLONE": {
+    "question": "Enter your frontend branch ? ",
+    "defaultValue": "main",
+    "validationRegex": ".{3,}",
+    "type": "string",
+    "getFromInput": true,
+    "relatedToSite": true
   }
 }

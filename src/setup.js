@@ -78,16 +78,6 @@ const getNginxDomainConfig = (sampleConfig, SITE_NAME, DOMAIN) => {
   return replaceOnce(configToRepeat, find, replace, 'gi');
 };
 
-const getMySqlDBConfig = (sampleConfig, mySqlDB) => {
-  const configToRepeat = sampleConfig.substring(
-    sampleConfig.indexOf('%begin%') + '%begin%'.length,
-    sampleConfig.lastIndexOf('%end%')
-  );
-  const find = ['%database_name%'];
-  const replace = [`${mySqlDB}`];
-  return replaceOnce(configToRepeat, find, replace, 'gi');
-};
-
 const createDockerComposerFromConfigs = (sampleConfig, dockerSettingFileNames) => {
   const dataArray = [];
   let dockerComposeConfig = '';
@@ -136,6 +126,8 @@ const createDockerComposerFromConfigs = (sampleConfig, dockerSettingFileNames) =
   createFolderIfNotExist(configsDirectory);
   createFolderIfNotExist(sqlDirectory);
   createFolderIfNotExist(sqlInitDirectory);
+  await copyFile(`${outputDirectory}/../mysql/01.db`, `${sqlInitDirectory}/01.sql`);
+
   // nginx folder
   createFolderIfNotExist(nginxDirectory);
   await copyFile(`${outputDirectory}/../nginx/default.conf`, `${nginxDirectory}/default.conf`);
@@ -227,23 +219,5 @@ const createDockerComposerFromConfigs = (sampleConfig, dockerSettingFileNames) =
     .toString('utf8');
   const dockerComposeConfig = createDockerComposerFromConfigs(dockerComposeSampleFile, dockerSettingFiles);
   fs.writeFileSync(`${outputDirectory}/docker-compose.yaml`, dockerComposeConfig);
-
-  // Mysql config
-  let apiConfig = ``;
-  const apiSettingFiles = await getFileNamesInDirectory(`${configsDirectory}`, '.api.deploy_settings.json');
-  const mysqlSampleFile = fs.readFileSync(`${outputDirectory}/../mysql/01.sql`).toString('utf8');
-  for (let i = 0; i < apiSettingFiles.length; i += 1) {
-    // eslint-disable-next-line no-await-in-loop
-    const currentSiteName = apiSettingFiles[i].substring(
-      apiSettingFiles[i].lastIndexOf('/') + 1,
-      apiSettingFiles[i].lastIndexOf('.api.deploy_settings.json')
-    );
-    const apiFile = readDeploySettingFile(
-      `${outputDirectory}/config/${currentSiteName}.api.deploy_settings.json`
-    );
-    apiConfig += getMySqlDBConfig(mysqlSampleFile, apiFile.MYSQL_DATABASE.defaultValue);
-  }
-  apiConfig += getNginxEndConfig(mysqlSampleFile);
-  fs.writeFileSync(`${sqlInitDirectory}/01.sql`, apiConfig);
   process.exit(0);
 })();

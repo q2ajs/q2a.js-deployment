@@ -126,7 +126,7 @@ const createDockerComposerFromConfigs = (sampleConfig, dockerSettingFileNames) =
   createFolderIfNotExist(configsDirectory);
   createFolderIfNotExist(sqlDirectory);
   createFolderIfNotExist(sqlInitDirectory);
-  await copyFile(`${outputDirectory}/../mysql/01.db`, `${sqlInitDirectory}/01.sql`);
+  await copyFile(`${outputDirectory}/../mysql/01.sql`, `${sqlInitDirectory}/01.sql`);
 
   // nginx folder
   createFolderIfNotExist(nginxDirectory);

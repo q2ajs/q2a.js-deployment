@@ -126,10 +126,20 @@ const createDockerComposerFromConfigs = (sampleConfig, dockerSettingFileNames) =
   createFolderIfNotExist(configsDirectory);
   createFolderIfNotExist(sqlDirectory);
   createFolderIfNotExist(sqlInitDirectory);
-  await copyFile(`${outputDirectory}/../mysql/01.sql`, `${sqlInitDirectory}/01.sql`);
-
-  // nginx folder
   createFolderIfNotExist(nginxDirectory);
+
+  const siteNameRegex = RegExp('[a-z]{3,}');
+  // const siteNameRegex =/[a-z]/.test(siteNameRegex);
+  const siteName = await prompt('Enter site name (dev for development )/siteName:', '', siteNameRegex);
+  const isSiteExist = !fs.existsSync(`${configsDirectory}/${siteName}.main.deploy_settings.json`);
+  if(isSiteExist){
+    const edit = await prompt('Do you want edit information?(Y/N)');
+    if (!isAnswerYes(edit)) {
+      return;
+    }
+  }
+  
+  await copyFile(`${outputDirectory}/../mysql/01.sql`, `${sqlInitDirectory}/01.sql`);
   await copyFile(`${outputDirectory}/../nginx/default.conf`, `${nginxDirectory}/default.conf`);
   await copyFile(`${outputDirectory}/../nginx/Dockerfile`, `${nginxDirectory}/Dockerfile`);
   await copyFile(
@@ -141,46 +151,15 @@ const createDockerComposerFromConfigs = (sampleConfig, dockerSettingFileNames) =
     `${outputDirectory}/docker-compose.yaml`
   );
   await copyFile(`${outputDirectory}/../mysql/01.sql`, `${sqlInitDirectory}/01.sql`);
-
-  const siteNameRegex = RegExp('[a-z]{3,}');
-  // const siteNameRegex =/[a-z]/.test(siteNameRegex);
-  const siteName = await prompt('Enter site name (dev for development )/siteName:', '', siteNameRegex);
-
-  if (!fs.existsSync(`${configsDirectory}/${siteName}.main.deploy_settings.json`)) {
-    await createEnvFilesFromInput(siteName, false);
+  
+  if(isSiteExist){
+    await createEnvFilesFromInput(siteName, true);
   } else {
-    const edit = await prompt('Do you want edit information?(Y/N)');
-    if (isAnswerYes(edit)) {
-      await createEnvFilesFromInput(siteName, true);
-    } else {
-      console.log(`Please wait for downloading projects for ${siteName}...`);
-      await cloneProject('q2a.js-api', `${siteName}/api`);
-      await cloneProject('q2a.js-frontend', `${siteName}/frontend`);
-      console.log('Download succeeded');
-
-      const dockerSettings = readDeploySettingFile(
-        `${configsDirectory}/${siteName}.main.deploy_settings.json`
-      );
-
-      createEnvFromSettingsJson(
-        `${configsDirectory}/${siteName}.api.deploy_settings.json`,
-        `${outputDirectory}/${siteName}/api/.env`,
-        [
-          { MYSQL_HOST: 'mysql' },
-          { MYSQL_PASSWORD: dockerSettings.MYSQL_PASSWORD.defaultValue },
-          { MYSQL_USER: dockerSettings.MYSQL_USER.defaultValue },
-          { MYSQL_PORT: dockerSettings.MYSQL_PORT.defaultValue },
-        ]
-      );
-
-      createEnvFromSettingsJson(
-        `${configsDirectory}/${siteName}.frontend.deploy_settings.json`,
-        `${outputDirectory}/${siteName}/frontend/.env`,
-        [{ NEXT_PUBLIC_GRAPHQL_URL: `http://${siteName}_api:4000/graphql` }]
-      );
-    }
+    await createEnvFilesFromInput(siteName, false);
   }
-  const nginxSampleConfig = await fs
+
+
+  const nginxSampleConfig = fs
     .readFileSync(`${outputDirectory}/../nginx/default.conf`)
     .toString('utf8');
 

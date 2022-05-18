@@ -131,7 +131,7 @@ const createDockerComposerFromConfigs = (sampleConfig, dockerSettingFileNames) =
   const siteNameRegex = RegExp('[a-z]{3,}');
   // const siteNameRegex =/[a-z]/.test(siteNameRegex);
   const siteName = await prompt('Enter site name (dev for development )/siteName:', '', siteNameRegex);
-  const isSiteExist = !fs.existsSync(`${configsDirectory}/${siteName}.main.deploy_settings.json`);
+  const isSiteExist = fs.existsSync(`${configsDirectory}/${siteName}.main.deploy_settings.json`);
   if(isSiteExist){
     const edit = await prompt('Do you want edit information?(Y/N)');
     if (!isAnswerYes(edit)) {

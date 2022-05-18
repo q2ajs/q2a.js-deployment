@@ -60,7 +60,7 @@ const createEnvFilesFromInput = async (siteName, useSavedSample) => {
       : `${outputDirectory}/${siteName}/frontend/deploy_settings.json`,
     `${configsDirectory}/${siteName}.frontend.deploy_settings.json`,
     `${outputDirectory}/${siteName}/frontend/.env`,
-    [{ NEXT_PUBLIC_GRAPHQL_URL: `https://${siteName}/graphql` }]
+    [{ NEXT_PUBLIC_GRAPHQL_URL: `https://${dockerSettings.DOMAIN.defaultValue}/graphql` }]
   );
 };
 

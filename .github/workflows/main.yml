@@ -38,6 +38,7 @@ jobs:
           password: ${{ secrets.PASSWORD }}
           port: ${{ secrets.PORT }}
           script: |
+            $BRANCH_NAME
             node -v
             cd /var/www/q2a.js
             git pull --all

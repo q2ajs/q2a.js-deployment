@@ -39,7 +39,6 @@ jobs:
           port: ${{ secrets.PORT }}
           script: |
             ${{ github.head_ref || github.ref_name }}
-            ${{ $BRANCH_NAME }}
             node -v
             cd /var/www/q2a.js
             git pull --all

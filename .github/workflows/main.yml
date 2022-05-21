@@ -38,9 +38,9 @@ jobs:
           password: ${{ secrets.PASSWORD }}
           port: ${{ secrets.PORT }}
           script: |
-            $BRANCH_NAME
+            ${{ BRANCH_NAME }}
             node -v
             cd /var/www/q2a.js
             git pull --all
-            git checkout origin $BRANCH_NAME
+            git checkout $BRANCH_NAME
             git branch

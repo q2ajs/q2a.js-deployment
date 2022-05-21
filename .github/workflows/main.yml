@@ -24,14 +24,14 @@ on:
         required: true
         default: 'q2ajs.com'
 jobs:
+  env:
+    BRANCH_NAME: ${{ github.head_ref || github.ref_name }}
   DeployToServer:
     name: DeployToServer
     runs-on: ubuntu-latest
     steps:
       - name: executing remote ssh commands using password
         uses: appleboy/ssh-action@master
-        env:
-          BRANCH_NAME: ${{ github.head_ref || github.ref_name }}
         with:
           host: ${{ secrets.HOST }}
           username: ${{ secrets.USERNAME }}

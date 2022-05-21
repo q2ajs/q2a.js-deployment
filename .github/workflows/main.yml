@@ -42,5 +42,5 @@ jobs:
             node -v
             cd /var/www/q2a.js
             git pull --all
-            git checkout $BRANCH_NAME
+            git checkout ${{ github.head_ref || github.ref_name }}
             git branch

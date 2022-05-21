@@ -30,6 +30,8 @@ jobs:
     steps:
       - name: executing remote ssh commands using password
         uses: appleboy/ssh-action@master
+        env:
+          BRANCH_NAME: ${{ github.head_ref || github.ref_name }}
         with:
           host: ${{ secrets.HOST }}
           username: ${{ secrets.USERNAME }}
@@ -39,5 +41,5 @@ jobs:
             node -v
             cd /var/www/q2a.js
             git pull --all
-            git checkout ${{github.ref}}
+            git checkout ${{ BRANCH_NAME }}
             git branch

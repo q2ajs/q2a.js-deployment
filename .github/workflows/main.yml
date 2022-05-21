@@ -1,0 +1,38 @@
+# https://game.ci/docs/github/android
+# https://game.ci/docs/github/iOS
+# ssh-keygen -t ed25519 -a 100 -C "git@github.com:dopaminegamesstudio/hypercasual-starter-kit.git"
+
+name: Build project
+
+on:
+  workflow_dispatch:
+    inputs:
+      projectName:
+        description: 'Project Name'
+        required: true
+        default: 'q2a.js'
+      frontendBranch:
+        description: 'Frontend branch to use'
+        required: true
+        default: 'main'
+      apiBranch:
+        description: 'API Branch to use'
+        required: true
+        default: 'main'
+      domain:
+        description: 'domain'
+        required: true
+        default: 'q2ajs.com'
+jobs:
+  DeployToServer:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - name: executing remote ssh commands using password
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          password: ${{ secrets.PASSWORD }}
+          port: ${{ secrets.PORT }}
+          script: ls -al

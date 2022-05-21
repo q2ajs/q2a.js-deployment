@@ -11,7 +11,7 @@ yarn install_prod_modules
 ### Setup 
 Fill necessary info for your site 
 ```
-yarn api_setup
+yarn setup
 ```
 ( If you want to add a new site run this again)
 

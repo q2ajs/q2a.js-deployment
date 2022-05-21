@@ -60,7 +60,7 @@ const createEnvFilesFromInput = async (siteName, useSavedSample) => {
       : `${outputDirectory}/${siteName}/frontend/deploy_settings.json`,
     `${configsDirectory}/${siteName}.frontend.deploy_settings.json`,
     `${outputDirectory}/${siteName}/frontend/.env`,
-    [{ NEXT_PUBLIC_GRAPHQL_URL: `https://${siteName}/graphql` }]
+    [{ NEXT_PUBLIC_GRAPHQL_URL: `http://${siteName}_api:4000/graphql` }]
   );
 };
 
@@ -75,16 +75,6 @@ const getNginxDomainConfig = (sampleConfig, SITE_NAME, DOMAIN) => {
   );
   const find = ['%frontend%', '%api%', '%sitename%', '%domain%'];
   const replace = [`${SITE_NAME}_frontend`, `${SITE_NAME}_api`, `${SITE_NAME}`, `${DOMAIN}`];
-  return replaceOnce(configToRepeat, find, replace, 'gi');
-};
-
-const getMySqlDBConfig = (sampleConfig, mySqlDB) => {
-  const configToRepeat = sampleConfig.substring(
-    sampleConfig.indexOf('%begin%') + '%begin%'.length,
-    sampleConfig.lastIndexOf('%end%')
-  );
-  const find = ['%database_name%'];
-  const replace = [`${mySqlDB}`];
   return replaceOnce(configToRepeat, find, replace, 'gi');
 };
 
@@ -136,8 +126,20 @@ const createDockerComposerFromConfigs = (sampleConfig, dockerSettingFileNames) =
   createFolderIfNotExist(configsDirectory);
   createFolderIfNotExist(sqlDirectory);
   createFolderIfNotExist(sqlInitDirectory);
-  // nginx folder
   createFolderIfNotExist(nginxDirectory);
+
+  const siteNameRegex = RegExp('[a-z]{3,}');
+  // const siteNameRegex =/[a-z]/.test(siteNameRegex);
+  const siteName = await prompt('Enter site name (dev for development )/siteName:', '', siteNameRegex);
+  const isSiteExist = fs.existsSync(`${configsDirectory}/${siteName}.main.deploy_settings.json`);
+  if(isSiteExist){
+    const edit = await prompt('Do you want edit information?(Y/N)');
+    if (!isAnswerYes(edit)) {
+      return;
+    }
+  }
+  
+  await copyFile(`${outputDirectory}/../mysql/01.sql`, `${sqlInitDirectory}/01.sql`);
   await copyFile(`${outputDirectory}/../nginx/default.conf`, `${nginxDirectory}/default.conf`);
   await copyFile(`${outputDirectory}/../nginx/Dockerfile`, `${nginxDirectory}/Dockerfile`);
   await copyFile(
@@ -149,46 +151,15 @@ const createDockerComposerFromConfigs = (sampleConfig, dockerSettingFileNames) =
     `${outputDirectory}/docker-compose.yaml`
   );
   await copyFile(`${outputDirectory}/../mysql/01.sql`, `${sqlInitDirectory}/01.sql`);
-
-  const siteNameRegex = RegExp('[a-z]{3,}');
-  // const siteNameRegex =/[a-z]/.test(siteNameRegex);
-  const siteName = await prompt('Enter site name (dev for development )/siteName:', '', siteNameRegex);
-
-  if (!fs.existsSync(`${configsDirectory}/${siteName}.main.deploy_settings.json`)) {
-    await createEnvFilesFromInput(siteName, false);
+  
+  if(isSiteExist){
+    await createEnvFilesFromInput(siteName, true);
   } else {
-    const edit = await prompt('Do you want edit information?(Y/N)');
-    if (isAnswerYes(edit)) {
-      await createEnvFilesFromInput(siteName, true);
-    } else {
-      console.log(`Please wait for downloading projects for ${siteName}...`);
-      await cloneProject('q2a.js-api', `${siteName}/api`);
-      await cloneProject('q2a.js-frontend', `${siteName}/frontend`);
-      console.log('Download succeeded');
-
-      const dockerSettings = readDeploySettingFile(
-        `${configsDirectory}/${siteName}.main.deploy_settings.json`
-      );
-
-      createEnvFromSettingsJson(
-        `${configsDirectory}/${siteName}.api.deploy_settings.json`,
-        `${outputDirectory}/${siteName}/api/.env`,
-        [
-          { MYSQL_HOST: 'mysql' },
-          { MYSQL_PASSWORD: dockerSettings.MYSQL_PASSWORD.defaultValue },
-          { MYSQL_USER: dockerSettings.MYSQL_USER.defaultValue },
-          { MYSQL_PORT: dockerSettings.MYSQL_PORT.defaultValue },
-        ]
-      );
-
-      createEnvFromSettingsJson(
-        `${configsDirectory}/${siteName}.frontend.deploy_settings.json`,
-        `${outputDirectory}/${siteName}/frontend/.env`,
-        [{ NEXT_PUBLIC_GRAPHQL_URL: `https://${siteName}/graphql` }]
-      );
-    }
+    await createEnvFilesFromInput(siteName, false);
   }
-  const nginxSampleConfig = await fs
+
+
+  const nginxSampleConfig = fs
     .readFileSync(`${outputDirectory}/../nginx/default.conf`)
     .toString('utf8');
 
@@ -227,23 +198,5 @@ const createDockerComposerFromConfigs = (sampleConfig, dockerSettingFileNames) =
     .toString('utf8');
   const dockerComposeConfig = createDockerComposerFromConfigs(dockerComposeSampleFile, dockerSettingFiles);
   fs.writeFileSync(`${outputDirectory}/docker-compose.yaml`, dockerComposeConfig);
-
-  // Mysql config
-  let apiConfig = ``;
-  const apiSettingFiles = await getFileNamesInDirectory(`${configsDirectory}`, '.api.deploy_settings.json');
-  const mysqlSampleFile = fs.readFileSync(`${outputDirectory}/../mysql/01.sql`).toString('utf8');
-  for (let i = 0; i < apiSettingFiles.length; i += 1) {
-    // eslint-disable-next-line no-await-in-loop
-    const currentSiteName = apiSettingFiles[i].substring(
-      apiSettingFiles[i].lastIndexOf('/') + 1,
-      apiSettingFiles[i].lastIndexOf('.api.deploy_settings.json')
-    );
-    const apiFile = readDeploySettingFile(
-      `${outputDirectory}/config/${currentSiteName}.api.deploy_settings.json`
-    );
-    apiConfig += getMySqlDBConfig(mysqlSampleFile, apiFile.MYSQL_DATABASE.defaultValue);
-  }
-  apiConfig += getNginxEndConfig(mysqlSampleFile);
-  fs.writeFileSync(`${sqlInitDirectory}/01.sql`, apiConfig);
   process.exit(0);
 })();

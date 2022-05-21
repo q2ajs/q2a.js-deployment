@@ -25,7 +25,7 @@ on:
         default: 'q2ajs.com'
 jobs:
   DeployToServer:
-    name: Build
+    name: DeployToServer
     runs-on: ubuntu-latest
     steps:
       - name: executing remote ssh commands using password
@@ -35,4 +35,8 @@ jobs:
           username: ${{ secrets.USERNAME }}
           password: ${{ secrets.PASSWORD }}
           port: ${{ secrets.PORT }}
-          script: ls -al
+          script: |
+            node -v
+            cd /var/www/q2a.js
+            ls 
+            git pull --all

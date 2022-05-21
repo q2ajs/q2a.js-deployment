@@ -38,6 +38,6 @@ jobs:
           script: |
             node -v
             cd /var/www/q2a.js
-            ls 
             git pull --all
             git checkout ${GITHUB_REF##*/}
+            git branch

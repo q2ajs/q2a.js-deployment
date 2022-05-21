@@ -28,6 +28,8 @@ jobs:
     name: DeployToServer
     runs-on: ubuntu-latest
     steps:
+      - name: Branch name
+          run: running on branch ${GITHUB_REF##*/}
       - name: executing remote ssh commands using password
         uses: appleboy/ssh-action@master
         with:
@@ -40,3 +42,4 @@ jobs:
             cd /var/www/q2a.js
             ls 
             git pull --all
+            git checkout ${GITHUB_REF##*/}

@@ -28,8 +28,6 @@ jobs:
     name: DeployToServer
     runs-on: ubuntu-latest
     steps:
-      - name: Branch name
-          run: running on branch ${GITHUB_REF##*/}
       - name: executing remote ssh commands using password
         uses: appleboy/ssh-action@master
         with:

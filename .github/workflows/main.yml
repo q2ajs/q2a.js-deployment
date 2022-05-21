@@ -23,9 +23,9 @@ on:
         description: 'domain'
         required: true
         default: 'q2ajs.com'
+env:
+  BRANCH_NAME: ${{ github.head_ref || github.ref_name }}
 jobs:
-  env:
-    BRANCH_NAME: ${{ github.head_ref || github.ref_name }}
   DeployToServer:
     name: DeployToServer
     runs-on: ubuntu-latest
